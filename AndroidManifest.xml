@@ -18,6 +18,7 @@
         <receiver android:name="DeviceAttachedBroadcastReceiver" >
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+                <action android:name="com.mantz_it.hackrf_android.USB_PERMISSION" />
             </intent-filter>
 
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
