@@ -5,5 +5,10 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="openHackrfDevice">Open HackRF Device</string>
+    <string name="info">Info</string>
+    <string name="rx">RX</string>
+    <string name="tx">TX</string>
+    <string name="sampRate">Sample Rate</string>
+    <string name="freq">Frequency</string>
 
 </resources>
