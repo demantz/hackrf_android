@@ -77,7 +77,7 @@ public class Hackrf {
 	/**
 	 * Initializing the Hackrf Instance with a USB Device.
 	 * 
-	 * @return false if error occured 
+	 * @return false if no Hackrf could be found
 	 */
 	public static boolean initHackrf(Context context, final HackrfCallbackInterface callbackInterface)
 	{

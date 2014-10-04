@@ -15,7 +15,8 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="25dp"
-        android:text="@string/openHackRFOne" />
+        android:text="@string/openHackrfDevice" 
+        android:onClick="openHackrf" />
 
     <TextView
         android:id="@+id/tv_output"
