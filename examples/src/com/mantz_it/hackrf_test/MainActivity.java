@@ -6,6 +6,7 @@ import com.mantz_it.hackrf_android.HackrfUsbException;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,6 +23,7 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 		setContentView(R.layout.activity_main);
 		
 		tv_output = (TextView) findViewById(R.id.tv_output);
+		tv_output.setMovementMethod(new ScrollingMovementMethod());
 	}
 
 	@Override
@@ -55,9 +57,18 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 	public void onHackrfReady(Hackrf hackrf) {
 		tv_output.append("HackRF is ready!\n");
 		try {
-			tv_output.append("Board ID: " + hackrf.getBoardID() +"\n");
+			int boardID = hackrf.getBoardID();
+			tv_output.append("Board ID:   " + boardID + " (" + Hackrf.convertBoardIdToString(boardID) + ")\n" );
+			tv_output.append("Version:    " + hackrf.getVersionString() +"\n");
+			int[] tmp = hackrf.getPartIdAndSerialNo();
+			tv_output.append("Part ID:    0x" + Integer.toHexString(tmp[0]) + 
+										" 0x" + Integer.toHexString(tmp[1]) +"\n");
+			tv_output.append("Serial No:  0x" + Integer.toHexString(tmp[2]) + 
+										" 0x" + Integer.toHexString(tmp[3]) +
+										" 0x" + Integer.toHexString(tmp[4]) +
+										" 0x" + Integer.toHexString(tmp[5]) +"\n\n");
 		} catch (HackrfUsbException e) {
-			tv_output.append("Error while reading Board ID!\n");
+			tv_output.append("Error while reading Board Information!\n");
 		}
 		this.hackrf = hackrf;
 	}

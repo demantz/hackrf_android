@@ -48,7 +48,7 @@ public class Hackrf {
 	public UsbDeviceConnection usbConnection = null;
 	
 	// Constants:
-	private static final String logTag = "private static final int HACKRF";
+	private static final String logTag = "HACKRF";
 	private static final String HACKRF_USB_PERMISSION = "com.mantz_it.hackrf_android.USB_PERMISSION";
 	private static final int HACKRF_VENDOR_REQUEST_SET_TRANSCEIVER_MODE = 1;
 	private static final int HACKRF_VENDOR_REQUEST_MAX2837_WRITE = 2;
@@ -126,7 +126,7 @@ public class Hackrf {
 	                	Log.d(logTag,"Permission granted for device " + device.getDeviceName());
 	                	try {
 							Hackrf hackrf = new Hackrf(usbManager, device);
-							Toast.makeText(context, "HackRF is ready",Toast.LENGTH_LONG).show();
+							Toast.makeText(context, "HackRF at " + device.getDeviceName() + " is ready!",Toast.LENGTH_LONG).show();
 							callbackInterface.onHackrfReady(hackrf);
 						} catch (HackrfUsbException e) {
 							Log.e(logTag, "Couldn't open device " + device.getDeviceName());
@@ -179,6 +179,47 @@ public class Hackrf {
 		}
 	}
 	
+	
+	/**
+	 * Executes a Read Request.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param request	request type (HACKRF_VENDOR_REQUEST_**_READ)
+	 * @param buffer	reference to the receive buffer
+	 * @param length	length of the receive buffer
+	 * @return count of received bytes. Negative on error
+	 * @throws HackrfUsbException
+	 */
+	private int sendReadRequest(int request, byte[] buffer, int length) throws HackrfUsbException
+	{
+		int len = 0;
+		
+		// Claim the usb interface
+		if( !this.usbConnection.claimInterface(this.usbInterface, true))
+		{
+			Log.e(logTag, "Couldn't claim HackRF USB Interface!");
+			throw(new HackrfUsbException("Couldn't claim HackRF USB Interface!"));
+		}
+		
+		// Send Board ID Read request
+		len = this.usbConnection.controlTransfer(
+				UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_VENDOR,	// Request Type
+				request,	// Request
+				0,			// Value (unused)
+				0,			// Index (unused)
+				buffer,		// Buffer
+				length, 	// Length
+				0			// Timeout
+			);
+		
+		// Release usb interface
+		this.usbConnection.releaseInterface(this.usbInterface);
+		
+		return len;
+	}
+	
 	/**
 	 * Returns the Board ID of the HackRF.
 	 * 
@@ -191,25 +232,8 @@ public class Hackrf {
 	public byte getBoardID() throws HackrfUsbException
 	{
 		byte[] buffer = new byte[1];
-		int len = 0;
 		
-		if( !this.usbConnection.claimInterface(this.usbDevice.getInterface(0), true))
-		{
-			Log.e(logTag, "Couldn't claim HackRF USB Interface!");
-			throw(new HackrfUsbException("Couldn't claim HackRF USB Interface!"));
-		}
-		
-		len = this.usbConnection.controlTransfer(
-				UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_VENDOR,	// Request Type
-				HACKRF_VENDOR_REQUEST_BOARD_ID_READ,					// Request
-				0,			// Value (unused)
-				0,			// Index (unused)
-				buffer,		// Buffer
-				1, 			// Length
-				0			// Timeout
-			);
-		
-		if (len < 1)
+		if (this.sendReadRequest(HACKRF_VENDOR_REQUEST_BOARD_ID_READ, buffer, 1) < 1)
 		{
 			Log.e(logTag, "USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
@@ -217,6 +241,89 @@ public class Hackrf {
 		
 		return buffer[0];
 	}
+	
+	/**
+	 * Converts the Board ID into a human readable String (e.g. #2 => "HackRF One")
+	 * 
+	 * @param boardID	boardID to convert
+	 * @return Board ID interpretation as String
+	 * @throws HackrfUsbException
+	 */
+	public static String convertBoardIdToString(int boardID)
+	{
+		switch(boardID)
+		{
+			case 0: return "Jellybean";
+			case 1: return "Jawbreaker";
+			case 2: return "HackRF One";
+			default: return "INVALID BOARD ID";
+		}
+	}
+	
+	/**
+	 * Returns the Version String of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @return HackRF Version String
+	 * @throws HackrfUsbException
+	 */
+	public String getVersionString() throws HackrfUsbException
+	{
+		byte[] buffer = new byte[256];
+		int len = 0;
+		
+		len = this.sendReadRequest(HACKRF_VENDOR_REQUEST_VERSION_STRING_READ, buffer, 255);
+		
+		if (len < 1)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		buffer[len] = '\0';
+		
+		return new String(buffer);
+	}
+	
+	
+	/**
+	 * Returns the Part ID + Serial Number of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @return int[2+6] => int[0-1] is Part ID; int[2-5] is Serial No
+	 * @throws HackrfUsbException
+	 */
+	public int[] getPartIdAndSerialNo() throws HackrfUsbException
+	{
+		byte[] buffer = new byte[8+16];
+		int[] ret = new int[2+4];
+		
+		if(this.sendReadRequest(HACKRF_VENDOR_REQUEST_BOARD_PARTID_SERIALNO_READ, buffer, 8+16) < 8+16)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		for(int i = 0; i < 6; i++)
+		{
+			ret[i] = buffer[4*i] & 0xFF | (buffer[4*i+1] & 0xFF) << 8 | 
+					(buffer[4*i+2] & 0xFF) << 16 | (buffer[4*i+3] & 0xFF) << 24;
+		}
+		
+		return ret;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 
