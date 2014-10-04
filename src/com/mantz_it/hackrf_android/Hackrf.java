@@ -1,5 +1,7 @@
 package com.mantz_it.hackrf_android;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -179,22 +181,56 @@ public class Hackrf {
 		}
 	}
 	
+	/**
+	 * Converts a byte array into an integer using little endian byteorder.
+	 * 
+	 * @param b			byte array (length 4)
+	 * @param offset	offset pointing to the first byte in the bytearray that should be used
+	 * @return 			integer
+	 */
+	private int byteArrayToInt(byte[] b, int offset)
+	{
+		return b[offset+0] & 0xFF | (b[offset+1] & 0xFF) << 8 | 
+					(b[offset+2] & 0xFF) << 16 | (b[offset+3] & 0xFF) << 24;
+	}
 	
 	/**
-	 * Executes a Read Request.
+	 * Converts an integer into a byte array using little endian byteorder.
+	 * 
+	 * @param i		integer
+	 * @return 		byte array (length 4)
+	 */
+	private byte[] intToByteArray(int i)
+	{
+		byte[] b = new byte[4];
+		b[0] = (byte) (i & 0xff);
+		b[1] = (byte) ((i >> 8) & 0xff);
+		b[2] = (byte) ((i >> 16) & 0xff);
+		b[3] = (byte) ((i >> 24) & 0xff);
+		return b;
+	}
+	
+	/**
+	 * Executes a Request to the USB interface.
 	 * 
 	 * Note: This function interacts with the USB Hardware and
 	 * should not be called from a GUI Thread!
 	 * 
+	 * @param endpoint	USB_DIR_IN or USB_DIR_OUT
 	 * @param request	request type (HACKRF_VENDOR_REQUEST_**_READ)
-	 * @param buffer	reference to the receive buffer
-	 * @param length	length of the receive buffer
+	 * @param value		value to use in the controlTransfer call
+	 * @param index		index to use in the controlTransfer call
+	 * @param buffer	buffer to use in the controlTransfer call
 	 * @return count of received bytes. Negative on error
 	 * @throws HackrfUsbException
 	 */
-	private int sendReadRequest(int request, byte[] buffer, int length) throws HackrfUsbException
+	private int sendUsbRequest(int endpoint, int request, int value, int index, byte[] buffer) throws HackrfUsbException
 	{
 		int len = 0;
+		
+		// Determine the length of the buffer:
+		if(buffer != null)
+			len = buffer.length;
 		
 		// Claim the usb interface
 		if( !this.usbConnection.claimInterface(this.usbInterface, true))
@@ -205,12 +241,12 @@ public class Hackrf {
 		
 		// Send Board ID Read request
 		len = this.usbConnection.controlTransfer(
-				UsbConstants.USB_DIR_IN | UsbConstants.USB_TYPE_VENDOR,	// Request Type
+				endpoint | UsbConstants.USB_TYPE_VENDOR,	// Request Type
 				request,	// Request
-				0,			// Value (unused)
-				0,			// Index (unused)
+				value,		// Value (unused)
+				index,		// Index (unused)
 				buffer,		// Buffer
-				length, 	// Length
+				len, 		// Length
 				0			// Timeout
 			);
 		
@@ -233,7 +269,7 @@ public class Hackrf {
 	{
 		byte[] buffer = new byte[1];
 		
-		if (this.sendReadRequest(HACKRF_VENDOR_REQUEST_BOARD_ID_READ, buffer, 1) < 1)
+		if (this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_BOARD_ID_READ, 0, 0, buffer) != 1)
 		{
 			Log.e(logTag, "USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
@@ -271,18 +307,16 @@ public class Hackrf {
 	 */
 	public String getVersionString() throws HackrfUsbException
 	{
-		byte[] buffer = new byte[256];
+		byte[] buffer = new byte[255];
 		int len = 0;
 		
-		len = this.sendReadRequest(HACKRF_VENDOR_REQUEST_VERSION_STRING_READ, buffer, 255);
+		len = this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_VERSION_STRING_READ, 0, 0, buffer);
 		
 		if (len < 1)
 		{
 			Log.e(logTag, "USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
-		
-		buffer[len] = '\0';
 		
 		return new String(buffer);
 	}
@@ -302,7 +336,8 @@ public class Hackrf {
 		byte[] buffer = new byte[8+16];
 		int[] ret = new int[2+4];
 		
-		if(this.sendReadRequest(HACKRF_VENDOR_REQUEST_BOARD_PARTID_SERIALNO_READ, buffer, 8+16) < 8+16)
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_BOARD_PARTID_SERIALNO_READ, 
+				0, 0, buffer) != 8+16)
 		{
 			Log.e(logTag, "USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
@@ -310,11 +345,280 @@ public class Hackrf {
 		
 		for(int i = 0; i < 6; i++)
 		{
-			ret[i] = buffer[4*i] & 0xFF | (buffer[4*i+1] & 0xFF) << 8 | 
-					(buffer[4*i+2] & 0xFF) << 16 | (buffer[4*i+3] & 0xFF) << 24;
+			ret[i] = this.byteArrayToInt(buffer, 4*i);
 		}
 		
 		return ret;
+	}
+	
+	/**
+	 * Sets the Sample Rate of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	sampRate	Sample Rate in Hz
+	 * @param	divider		Divider
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setSampleRate(int sampRate, int divider) throws HackrfUsbException
+	{
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		
+		try {
+			byteOut.write(this.intToByteArray(sampRate));
+			byteOut.write(this.intToByteArray(divider));
+		} catch (IOException e) {
+			Log.e(logTag,"Error while converting arguments to byte buffer.");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_SAMPLE_RATE_SET, 
+				0, 0, byteOut.toByteArray()) != 8)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Computes a valid Baseband Filter Bandwidth that is closest to
+	 * a given Sample Rate. If there is no exact match, the returned
+	 * Bandwidth will be smaller than the Sample Rate.
+	 * 
+	 * @param	sampRate	Bandwidth for the Baseband Filter
+	 * @return 	Baseband Filter Bandwidth
+	 * @throws 	HackrfUsbException
+	 */
+	public static int computeBasebandFilterBandwidth(int sampRate)
+	{
+		int bandwidth = 1750000;
+		int[] supportedBandwidthValues = {1750000, 2500000, 3500000, 5000000, 5500000, 
+										  6000000, 7000000, 8000000, 9000000, 10000000, 
+										  12000000, 14000000, 15000000, 20000000, 24000000, 
+										  28000000 };
+		
+		for(int candidate: supportedBandwidthValues)
+		{
+			if(sampRate < candidate)
+				break;
+			bandwidth = candidate;
+		}
+
+		return bandwidth;
+	}
+	
+	/**
+	 * Sets the baseband filter bandwidth of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	bandwidth	Bandwidth for the Baseband Filter
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setBasebandFilterBandwidth(int bandwidth) throws HackrfUsbException
+	{
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_BASEBAND_FILTER_BANDWIDTH_SET, 
+				bandwidth & 0xffff, (bandwidth >> 16) & 0xffff, null) != 0)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Sets the RX VGA Gain of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	gain	RX VGA Gain (0-62)
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setRxVGAGain(int gain) throws HackrfUsbException
+	{
+		byte[] retVal = new byte[1];
+		
+		if(gain > 62)
+		{
+			Log.e(logTag,"RX VGA Gain must be within 0-62!");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_VGA_GAIN, 
+				0, gain, retVal) != 1)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		if (retVal[0] == 0)
+		{
+			Log.e(logTag,"HackRF returned with an error!");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Sets the TX VGA Gain of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	gain	TX VGA Gain (0-62)
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setTxVGAGain(int gain) throws HackrfUsbException
+	{
+		byte[] retVal = new byte[1];
+		
+		if(gain > 47)
+		{
+			Log.e(logTag,"TX VGA Gain must be within 0-47!");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_TXVGA_GAIN, 
+				0, gain, retVal) != 1)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		if (retVal[0] == 0)
+		{
+			Log.e(logTag,"HackRF returned with an error!");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Sets the RX LNA Gain of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	gain	RX LNA Gain (0-62)
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setRxLNAGain(int gain) throws HackrfUsbException
+	{
+		byte[] retVal = new byte[1];
+		
+		if(gain > 40)
+		{
+			Log.e(logTag,"RX LNA Gain must be within 0-40!");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_LNA_GAIN, 
+				0, gain, retVal) != 1)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		if (retVal[0] == 0)
+		{
+			Log.e(logTag,"HackRF returned with an error!");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Sets the Frequency of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	frequency	Frequency in Hz
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setFrequency(long frequency) throws HackrfUsbException
+	{
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		int mhz = (int) (frequency/1000000l);
+		int hz = (int) (frequency%1000000l);
+		
+		Log.d(logTag, "Tune HackRF to " + mhz + "." + hz + "MHz...");
+		
+		try {
+			byteOut.write(this.intToByteArray(mhz));
+			byteOut.write(this.intToByteArray(hz));
+		} catch (IOException e) {
+			Log.e(logTag,"Error while converting arguments to byte buffer.");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_SET_FREQ, 
+				0, 0, byteOut.toByteArray()) != 8)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Enables or Disables the Amplifier of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	enable		true for enable or false for disable
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setAmp(boolean enable) throws HackrfUsbException
+	{
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_AMP_ENABLE, 
+				(enable ? 1 : 0) , 0, null) != 0)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
+
+	/**
+	 * Enables or Disables the Antenna Port Power of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	enable		true for enable or false for disable
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setAntennaPower(boolean enable) throws HackrfUsbException
+	{
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE, 
+				(enable ? 1 : 0) , 0, null) != 0)
+		{
+			Log.e(logTag, "USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
 	}
 	
 	
@@ -322,9 +626,4 @@ public class Hackrf {
 	
 	
 	
-	
-	
-	
-	
-
 }

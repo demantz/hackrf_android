@@ -11,10 +11,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 public class MainActivity extends Activity implements HackrfCallbackInterface{
 
+	private EditText et_sampRate = null;
+	private EditText et_freq = null;
 	private TextView tv_output = null;
 	private Hackrf hackrf = null;
 	
@@ -23,6 +26,8 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		et_sampRate = (EditText) findViewById(R.id.et_sampRate);
+		et_freq = (EditText) findViewById(R.id.et_freq);
 		tv_output = (TextView) findViewById(R.id.tv_output);
 		tv_output.setMovementMethod(new ScrollingMovementMethod());
 		this.toggleButtonsEnabled(false);
@@ -82,7 +87,32 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 	{
 		if (hackrf != null)
 		{
-			tv_output.append("Not implemented yet!\n");
+			int sampRate = Integer.valueOf(et_sampRate.getText().toString());
+			long freq = (long) Integer.valueOf(et_freq.getText().toString());
+			int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
+			int vgaGain = 20;
+			int lnaGain = 8;
+			boolean amp = false;
+			boolean antennaPower = false;
+			try {
+				tv_output.append("Setting Sample Rate to " + sampRate + " Sps ... ");
+				hackrf.setSampleRate(sampRate, 1);
+				tv_output.append("ok.\nSetting Frequency to " + freq + " Hz ... ");
+				hackrf.setFrequency(freq);
+				tv_output.append("ok.\nSetting Baseband Filter Bandwidth to " + basebandFilterWidth + " Hz ... ");
+				hackrf.setBasebandFilterBandwidth(basebandFilterWidth);
+				tv_output.append("ok.\nSetting RX VGA Gain to " + vgaGain + " ... ");
+				hackrf.setRxVGAGain(vgaGain);
+				tv_output.append("ok.\nSetting LNA Gain to " + lnaGain + " ... ");
+				hackrf.setRxLNAGain(lnaGain);
+				tv_output.append("ok.\nSetting Amplifier to " + amp + " ... ");
+				hackrf.setAmp(amp);
+				tv_output.append("ok.\nSetting Antenna Power to " + antennaPower + " ... ");
+				hackrf.setAntennaPower(antennaPower);
+				tv_output.append("ok.\n\n");
+			} catch (HackrfUsbException e) {
+				tv_output.append("error!\n");
+			}
 		}
 	}
 	
@@ -90,7 +120,30 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 	{
 		if (hackrf != null)
 		{
-			tv_output.append("Not implemented yet!\n");
+			int sampRate = Integer.valueOf(et_sampRate.getText().toString());
+			long freq = (long) Integer.valueOf(et_freq.getText().toString());
+			int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
+			int vgaGain = 0;
+			boolean amp = false;
+			boolean antennaPower = false;
+			try {
+				tv_output.append("Setting Sample Rate to " + sampRate + " Sps ... ");
+				hackrf.setSampleRate(sampRate, 1);
+				tv_output.append("ok.\nSetting Frequency to " + freq + " Hz ... ");
+				hackrf.setFrequency(freq);
+				tv_output.append("ok.\nSetting Baseband Filter Bandwidth to " + basebandFilterWidth + " Hz ... ");
+				hackrf.setBasebandFilterBandwidth(basebandFilterWidth);
+				tv_output.append("ok.\nSetting TX VGA Gain to " + vgaGain + " ... ");
+				hackrf.setTxVGAGain(vgaGain);
+				tv_output.append("ok.\nSetting Amplifier to " + amp + " ... ");
+				hackrf.setAmp(amp);
+				tv_output.append("ok.\nSetting Antenna Power to " + antennaPower + " ... ");
+				hackrf.setAntennaPower(antennaPower);
+				tv_output.append("ok.\n\n");
+			} catch (HackrfUsbException e) {
+				tv_output.append("error!\n");
+			}
+			tv_output.append("TX is not implemented yet!\n");
 		}
 	}
 	

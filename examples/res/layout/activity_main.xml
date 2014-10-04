@@ -87,7 +87,7 @@
         android:layout_toRightOf="@+id/tv_freqLabel"
         android:ems="10"
         android:inputType="number"
-        android:text="97.95" >
+        android:text="97000000" >
     </EditText>
 
     <TextView
