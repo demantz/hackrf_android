@@ -1,11 +1,20 @@
 package com.mantz_it.hackrf_android;
 
+import java.util.HashMap;
+import java.util.Iterator;
+
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
+import android.widget.Toast;
 
 /**
  * <h1>HackRF USB Library for Android</h1>
@@ -40,6 +49,7 @@ public class Hackrf {
 	
 	// Constants:
 	private static final String logTag = "private static final int HACKRF";
+	private static final String HACKRF_USB_PERMISSION = "com.mantz_it.hackrf_android.USB_PERMISSION";
 	private static final int HACKRF_VENDOR_REQUEST_SET_TRANSCEIVER_MODE = 1;
 	private static final int HACKRF_VENDOR_REQUEST_MAX2837_WRITE = 2;
 	private static final int HACKRF_VENDOR_REQUEST_MAX2837_READ = 3;
@@ -63,6 +73,89 @@ public class Hackrf {
 	private static final int HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE = 23;
 	private static final int HACKRF_VENDOR_REQUEST_SET_FREQ_EXPLICIT = 24;
 	
+	
+	/**
+	 * Initializing the Hackrf Instance with a USB Device.
+	 * 
+	 * @return false if error occured 
+	 */
+	public static boolean initHackrf(Context context, final HackrfCallbackInterface callbackInterface)
+	{
+		final UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+		UsbDevice hackrfUsbDvice = null;
+		
+		// Get a list of connected devices
+		HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+		
+		// Iterate over the list. Use the first Device that matches a HackRF
+		Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+		while(deviceIterator.hasNext()){
+			UsbDevice device = deviceIterator.next();
+		    
+			// HackRF One (Vendor ID: 7504 [0x1d50]; Product ID: 24713 [0x6089] )
+			if ( device.getVendorId() == 7504 && device.getProductId() == 24713 )
+			{
+				Log.d(logTag,"Found HackRF One at " + device.getDeviceName());
+				hackrfUsbDvice = device;
+			}
+		    
+			// HackRF Jawbreaker (Vendor ID: 7504 [0x1d50]; Product ID: 24651 [0x604b])
+			if ( device.getVendorId() == 7504 && device.getProductId() == 24651 )
+			{
+				Log.d(logTag,"Found HackRF Jawbreaker at " + device.getDeviceName());
+				hackrfUsbDvice = device;
+			}
+		}
+		
+		// Check if we found a device:
+		if (hackrfUsbDvice == null)
+		{
+			Log.e(logTag,"No HackRF Device found.");
+			return false;
+		}
+		
+		// Requesting Permissions:
+		// First we define a broadcast receiver that handles the permission_granted intend:
+		BroadcastReceiver permissionBroadcastReceiver = new BroadcastReceiver() {
+		    public void onReceive(Context context, Intent intent) {
+		        if (HACKRF_USB_PERMISSION.equals(intent.getAction())) {
+	                UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+	                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) && device != null) {
+	                	// We have permissions to open the device! Lets init the hackrf instance and
+	                	// return it to the calling application.
+	                	Log.d(logTag,"Permission granted for device " + device.getDeviceName());
+	                	try {
+							Hackrf hackrf = new Hackrf(usbManager, device);
+							Toast.makeText(context, "HackRF is ready",Toast.LENGTH_LONG).show();
+							callbackInterface.onHackrfReady(hackrf);
+						} catch (HackrfUsbException e) {
+							Log.e(logTag, "Couldn't open device " + device.getDeviceName());
+							Toast.makeText(context, "Couldn't open HackRF device",Toast.LENGTH_LONG).show();
+		                    callbackInterface.onHackrfError("Couldn't open device " + device.getDeviceName());
+						}
+	                } 
+	                else 
+	                {
+	                    Log.e(logTag, "Permission denied for device " + device.getDeviceName());
+	                    Toast.makeText(context, "Permission denied to open HackRF device",Toast.LENGTH_LONG).show();
+	                    callbackInterface.onHackrfError("Permission denied for device " + device.getDeviceName());
+	                }
+		        }
+		    }
+		};
+		
+		// Now create a intent to request for the permissions and register the broadcast receiver for it:
+		PendingIntent mPermissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(HACKRF_USB_PERMISSION), 0);
+		IntentFilter filter = new IntentFilter(HACKRF_USB_PERMISSION);
+		context.registerReceiver(permissionBroadcastReceiver, filter);
+		
+		// Fire the request:
+		usbManager.requestPermission(hackrfUsbDvice, mPermissionIntent);
+		Log.d(logTag,"Permission request for device " + hackrfUsbDvice.getDeviceName() + " was send. waiting...");
+		
+		return true;
+	}
+	
 	/**
 	 * Initializing the Hackrf Instance with a USB Device.
 	 * Note: The application must have reclaimed permissions to
@@ -72,17 +165,8 @@ public class Hackrf {
 	 * @param usbDevice		Instance of an USB Device representing the HackRF
 	 * @throws HackrfUsbException
 	 */
-	public Hackrf (UsbManager usbManager, UsbDevice usbDevice) throws HackrfUsbException
+	private Hackrf (UsbManager usbManager, UsbDevice usbDevice) throws HackrfUsbException
 	{
-		// Check that usbDevice is indeed a HackRF 
-		// (Vendor ID: 7504 [0x1d50];  Product ID: 24713 [0x6089] / 24651 [0x604b])
-		if ( usbDevice.getVendorId() != 7504 || 
-				(usbDevice.getProductId() != 24713 && usbDevice.getProductId() != 24651))
-		{
-			Log.w(logTag, "USB Device is not a HackRF USB Device!");
-			throw(new HackrfUsbException("USB Device is not a HackRF USB Device!"));
-		}
-		
 		this.usbManager = usbManager;
 		this.usbDevice = usbDevice;
 		this.usbInterface = usbDevice.getInterface(0);

@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-
-<resources>
-    <usb-device vendor-id="7504" product-id="24713" class="255" subclass="0" protocol="0" /><!-- HackRF One -->
-    <usb-device vendor-id="7504" product-id="24651" class="255" subclass="0" protocol="0" /><!-- HackRF Jawbreaker -->
-</resources>
