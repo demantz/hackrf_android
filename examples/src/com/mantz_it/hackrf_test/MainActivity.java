@@ -1,12 +1,21 @@
 package com.mantz_it.hackrf_test;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import com.mantz_it.hackrf_android.Hackrf;
 import com.mantz_it.hackrf_android.HackrfCallbackInterface;
 import com.mantz_it.hackrf_android.HackrfUsbException;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -54,7 +63,9 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 	
 	public void openHackrf(View view)
 	{
-		if (!Hackrf.initHackrf(view.getContext(), this))
+		int queueSize = 2000000 * 2;	// 2 Msps with 2 byte each ==> will buffer for 1 second
+		
+		if (!Hackrf.initHackrf(view.getContext(), this, queueSize))
 		{
 			tv_output.append("No HackRF could be found!\n");
 		}
@@ -95,6 +106,8 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 			boolean amp = false;
 			boolean antennaPower = false;
 			try {
+				// First set all settings manually:
+				// We also could do that by just pass the args to startRX()
 				tv_output.append("Setting Sample Rate to " + sampRate + " Sps ... ");
 				hackrf.setSampleRate(sampRate, 1);
 				tv_output.append("ok.\nSetting Frequency to " + freq + " Hz ... ");
@@ -110,8 +123,36 @@ public class MainActivity extends Activity implements HackrfCallbackInterface{
 				tv_output.append("ok.\nSetting Antenna Power to " + antennaPower + " ... ");
 				hackrf.setAntennaPower(antennaPower);
 				tv_output.append("ok.\n\n");
+				
+				// Open output file
+				if(!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED))
+			    {
+					tv_output.append("External Media Storage not available.\n\n");
+			    	return;
+			    }
+				String filename = "hackrf_receive.io";
+				File file = new File(Environment.getExternalStorageDirectory(), filename);
+				tv_output.append("Save samples to " + file.getAbsolutePath() + "\n");
+				FileOutputStream outputStream = new FileOutputStream(file);
+				
+				// Start Receiving:
+				tv_output.append("Start Receiving... ");
+				ArrayBlockingQueue<byte[]> queue = hackrf.startRX();
+				
+				for(int i = 0; i < 100000; i++)
+				{
+					outputStream.write(queue.poll(1000, TimeUnit.MILLISECONDS));
+				}
+				outputStream.close();
+				tv_output.append("DONE! (Average Transfer Rate: " + hackrf.getAverageTransceiveRate() + " B/s)\n\n");
+				System.out.println("TIME: " + hackrf.getTransceivingTime());
+				System.out.println("COUNT: " + hackrf.getTransceiverPacketCounter());
 			} catch (HackrfUsbException e) {
-				tv_output.append("error!\n");
+				tv_output.append("error (USB)!\n");
+			} catch (IOException e) {
+				tv_output.append("error (File)!\n");
+			} catch (InterruptedException e) {
+				tv_output.append("error (Queue)!\n");
 			}
 		}
 	}
