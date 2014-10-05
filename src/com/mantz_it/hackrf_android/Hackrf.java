@@ -50,7 +50,10 @@ public class Hackrf {
 	public UsbDeviceConnection usbConnection = null;
 	
 	// Constants:
-	private static final String logTag = "HACKRF";
+	public static final int HACKRF_TRANSCEIVER_MODE_OFF = 0;
+	public static final int HACKRF_TRANSCEIVER_MODE_RECEIVE = 1;
+	public static final int HACKRF_TRANSCEIVER_MODE_TRANSMIT = 2;
+	private static final String logTag = "hackrf_android";
 	private static final String HACKRF_USB_PERMISSION = "com.mantz_it.hackrf_android.USB_PERMISSION";
 	private static final int HACKRF_VENDOR_REQUEST_SET_TRANSCEIVER_MODE = 1;
 	private static final int HACKRF_VENDOR_REQUEST_MAX2837_WRITE = 2;
@@ -271,7 +274,7 @@ public class Hackrf {
 		
 		if (this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_BOARD_ID_READ, 0, 0, buffer) != 1)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "getBoardID: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -314,7 +317,7 @@ public class Hackrf {
 		
 		if (len < 1)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "getVersionString: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -339,7 +342,7 @@ public class Hackrf {
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_BOARD_PARTID_SERIALNO_READ, 
 				0, 0, buffer) != 8+16)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "getPartIdAndSerialNo: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -370,14 +373,14 @@ public class Hackrf {
 			byteOut.write(this.intToByteArray(sampRate));
 			byteOut.write(this.intToByteArray(divider));
 		} catch (IOException e) {
-			Log.e(logTag,"Error while converting arguments to byte buffer.");
+			Log.e(logTag,"setSampleRate: Error while converting arguments to byte buffer.");
 			return false;
 		}
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_SAMPLE_RATE_SET, 
 				0, 0, byteOut.toByteArray()) != 8)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setSampleRate: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -426,7 +429,7 @@ public class Hackrf {
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_BASEBAND_FILTER_BANDWIDTH_SET, 
 				bandwidth & 0xffff, (bandwidth >> 16) & 0xffff, null) != 0)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setBasebandFilterBandwidth: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -449,20 +452,20 @@ public class Hackrf {
 		
 		if(gain > 62)
 		{
-			Log.e(logTag,"RX VGA Gain must be within 0-62!");
+			Log.e(logTag,"setRxVGAGain: RX VGA Gain must be within 0-62!");
 			return false;
 		}
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_VGA_GAIN, 
 				0, gain, retVal) != 1)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setRxVGAGain: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
 		if (retVal[0] == 0)
 		{
-			Log.e(logTag,"HackRF returned with an error!");
+			Log.e(logTag,"setRxVGAGain: HackRF returned with an error!");
 			return false;
 		}
 		
@@ -485,20 +488,20 @@ public class Hackrf {
 		
 		if(gain > 47)
 		{
-			Log.e(logTag,"TX VGA Gain must be within 0-47!");
+			Log.e(logTag,"setTxVGAGain: TX VGA Gain must be within 0-47!");
 			return false;
 		}
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_TXVGA_GAIN, 
 				0, gain, retVal) != 1)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setTxVGAGain: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
 		if (retVal[0] == 0)
 		{
-			Log.e(logTag,"HackRF returned with an error!");
+			Log.e(logTag,"setTxVGAGain: HackRF returned with an error!");
 			return false;
 		}
 		
@@ -521,20 +524,20 @@ public class Hackrf {
 		
 		if(gain > 40)
 		{
-			Log.e(logTag,"RX LNA Gain must be within 0-40!");
+			Log.e(logTag,"setRxLNAGain: RX LNA Gain must be within 0-40!");
 			return false;
 		}
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_LNA_GAIN, 
 				0, gain, retVal) != 1)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setRxLNAGain: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
 		if (retVal[0] == 0)
 		{
-			Log.e(logTag,"HackRF returned with an error!");
+			Log.e(logTag,"setRxLNAGain: HackRF returned with an error!");
 			return false;
 		}
 		
@@ -563,14 +566,14 @@ public class Hackrf {
 			byteOut.write(this.intToByteArray(mhz));
 			byteOut.write(this.intToByteArray(hz));
 		} catch (IOException e) {
-			Log.e(logTag,"Error while converting arguments to byte buffer.");
+			Log.e(logTag,"setFrequency: Error while converting arguments to byte buffer.");
 			return false;
 		}
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_SET_FREQ, 
 				0, 0, byteOut.toByteArray()) != 8)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setFrequency: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -592,7 +595,7 @@ public class Hackrf {
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_AMP_ENABLE, 
 				(enable ? 1 : 0) , 0, null) != 0)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setAmp: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
@@ -614,14 +617,40 @@ public class Hackrf {
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE, 
 				(enable ? 1 : 0) , 0, null) != 0)
 		{
-			Log.e(logTag, "USB Transfer failed!");
+			Log.e(logTag, "setAntennaPower: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
 		return true;
 	}
 	
-	
+	/**
+	 * Sets the Transceiver Mode of the HackRF (OFF,RX,TX)
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	mode		HACKRF_TRANSCEIVER_MODE_OFF, *_RECEIVE or *_TRANSMIT
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setTransceiverMode(int mode) throws HackrfUsbException
+	{
+		if (mode < 0 || mode > 2)
+		{
+			Log.e(logTag,"Invalid Transceiver Mode: " + mode);
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE, 
+				mode , 0, null) != 0)
+		{
+			Log.e(logTag, "setTransceiverMode: USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
 	
 	
 	
