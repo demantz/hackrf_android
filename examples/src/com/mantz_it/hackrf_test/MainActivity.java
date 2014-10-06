@@ -24,8 +24,37 @@ import com.mantz_it.hackrf_android.Hackrf;
 import com.mantz_it.hackrf_android.HackrfCallbackInterface;
 import com.mantz_it.hackrf_android.HackrfUsbException;
 
+/**
+ * <h1>Hackrf_Test</h1>
+ * 
+ * Module:      MainActivity.java
+ * Description: This Android application shows the usage of the hackrf_android
+ * 				library. It offers a simple user interface with buttons to open
+ * 				the device, print the device info on the screen and start / stop
+ * 				receiving / transmitting.
+ * 
+ * @author Dennis Mantz
+ * 
+ * Copyright (C) 2014 Dennis Mantz
+ * License: http://www.gnu.org/licenses/gpl.html GPL version 2 or higher
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 public class MainActivity extends Activity implements Runnable, HackrfCallbackInterface{
 	
+	// References to the GUI elements:
 	private Button bt_openHackRF = null;
 	private Button bt_info = null;
 	private Button bt_rx = null;
@@ -34,14 +63,17 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	private EditText et_sampRate = null;
 	private EditText et_freq = null;
 	private TextView tv_output = null;
+	
+	// Reference to the hackrf instance:
 	private Hackrf hackrf = null;
 	
 	private int sampRate = 0;
 	private long frequency = 0;
 	
+	// The handler is used to access GUI elements from other threads then the GUI thread
 	private Handler handler = null;
 	
-	// This variable is used to select what the Thread should do if it is started
+	// This variable is used to select what the thread should do if it is started
 	private int task = -1;
 	private static final int PRINT_INFO = 0;
 	private static final int RECEIVE = 1;
@@ -49,13 +81,16 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	
 	private boolean stopRequested = false;	// Used to stop receive/transmit thread
 	
+	// This method is called on application startup by the Android System:
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		// Create a Handler instance to use in other threads:
 		handler = new Handler();
 		
+		// Initialize the GUI references:
 		bt_info 		= ((Button) this.findViewById(R.id.bt_info));
    		bt_rx 			= ((Button) this.findViewById(R.id.bt_rx));
    		bt_tx			= ((Button) this.findViewById(R.id.bt_tx));
@@ -64,8 +99,8 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		et_sampRate 	= (EditText) findViewById(R.id.et_sampRate);
 		et_freq 		= (EditText) findViewById(R.id.et_freq);
 		tv_output 		= (TextView) findViewById(R.id.tv_output);
-		tv_output.setMovementMethod(new ScrollingMovementMethod());
-		this.toggleButtonsEnabledIfHackrfReady(false);
+		tv_output.setMovementMethod(new ScrollingMovementMethod());	// make it scroll!
+		this.toggleButtonsEnabledIfHackrfReady(false);	// Disable all buttons except for 'Open HackRF'
 	}
 
 	@Override
@@ -87,6 +122,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		return super.onOptionsItemSelected(item);
 	}
 	
+	/**
+	 * Will append the message to the tv_output TextView. Can be called from
+	 * outside the GUI thread because it uses the handler reference to access
+	 * the TextView.
+	 * 
+	 * @param msg	Message to print on the screen
+	 */
 	public void printOnScreen(final String msg)
 	{
 		handler.post(new Runnable() {
@@ -96,18 +138,15 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
             });
 	}
 	
-	public void openHackrf(View view)
-	{
-		int queueSize = 15000000 * 2;	// max. 15 Msps with 2 byte each ==> will buffer for 1 second
-		
-		// Initialize the HackRF (i.e. open the USB device, which requires the user to give permissions)
-		if (!Hackrf.initHackrf(view.getContext(), this, queueSize))
-		{
-			tv_output.append("No HackRF could be found!\n");
-		}
-		// initHackrf() is asynchronous. this.onHackrfReady() will be called as soon as the device is ready.
-	}
-	
+	/**
+	 * Will set all buttons to disabled except for the 'open hackrf' button. If
+	 * false is given, the behavior toggles. Can be called from
+	 * outside the GUI thread because it uses the handler reference to access
+	 * the TextView.
+	 * 
+	 * @param enable	if true: 'Open HackRf' will be enabled, all others disabled
+	 * 					if false: The other way round
+	 */
 	public void toggleButtonsEnabledIfHackrfReady(final boolean enable)
 	{
 		handler.post(new Runnable() {
@@ -121,6 +160,15 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	            });
 	}
 	
+	/**
+	 * Will set 'Info', 'RX' and 'TX' to disabled and 'stop' to enabled (while 
+	 * receiving/transmitting is running). If false is given, the behavior toggles. 
+	 * Can be called from outside the GUI thread because it uses the handler 
+	 * reference to access the TextView.
+	 * 
+	 * @param enable	if true: 'Stop' will be enabled, all others ('Info', 'RX' and 'TX') disabled
+	 * 					if false: The other way round
+	 */
 	public void toggleButtonsEnabledIfTransceiving(final boolean enable)
 	{
 		handler.post(new Runnable() {
@@ -132,22 +180,32 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	                }
 	            });
 	}
-
-	@Override
-	public void onHackrfReady(Hackrf hackrf) {
-		tv_output.append("HackRF is ready!\n");
+	
+	/**
+	 * Is called if the user presses the 'Open HackRF' Button. Will initialize the
+	 * HackRF device.
+	 * 
+	 * @param view		Reference to the calling View (in this case bt_openHackRF)
+	 */
+	public void openHackrf(View view)
+	{
+		int queueSize = 15000000 * 2;	// max. 15 Msps with 2 byte each ==> will buffer for 1 second
 		
-		this.hackrf = hackrf;
-		this.toggleButtonsEnabledIfHackrfReady(true);
-		this.toggleButtonsEnabledIfTransceiving(false);
-	}
-
-	@Override
-	public void onHackrfError(String message) {
-		tv_output.append("Error while opening HackRF: " + message +"\n");
-		this.toggleButtonsEnabledIfHackrfReady(false);
+		// Initialize the HackRF (i.e. open the USB device, which requires the user to give permissions)
+		if (!Hackrf.initHackrf(view.getContext(), this, queueSize))
+		{
+			tv_output.append("No HackRF could be found!\n");
+		}
+		// initHackrf() is asynchronous. this.onHackrfReady() will be called as soon as the device is ready.
 	}
 	
+	/**
+	 * Is called if the user presses the 'Info' Button. Will start a Thread that
+	 * retrieves the BoardID, Version String, PartID and Serial number from the device
+	 * and then print the information on the screen.
+	 * 
+	 * @param view		Reference to the calling View (in this case bt_info)
+	 */
 	public void info(View view)
 	{
 		if (hackrf != null)
@@ -157,6 +215,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		}
 	}
 	
+	/**
+	 * Is called if the user presses the 'RX' Button. Will start a Thread that
+	 * sets the HackRF into receiving mode and then save the received samples
+	 * to a file. Will run forever until user presses the 'Stop' button.
+	 * 
+	 * @param view		Reference to the calling View (in this case bt_rx)
+	 */
 	public void rx(View view)
 	{
 		if (hackrf != null)
@@ -170,6 +235,14 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		}
 	}
 	
+	/**
+	 * Is called if the user presses the 'TX' Button. Will start a Thread that
+	 * sets the HackRF into transmitting mode and then read the samples
+	 * from a file and pass them to the HackRF. Will run forever until user 
+	 * presses the 'Stop' button.
+	 * 
+	 * @param view		Reference to the calling View (in this case bt_tx)
+	 */
 	public void tx(View view)
 	{
 		if (hackrf != null)
@@ -183,6 +256,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		}
 	}
 	
+	/**
+	 * Is called if the user presses the 'Stop' Button. Will set the stopRequested
+	 * attribute to true, which will cause any running thread to shut down. It will
+	 * then set the transceiver mode of the HackRF to OFF.
+	 * 
+	 * @param view		Reference to the calling View (in this case bt_stop)
+	 */
 	public void stop(View view)
 	{
 		this.stopRequested = true;
@@ -198,7 +278,60 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			}
 		}
 	}
+
+	/**
+	 * Is called by the hackrf_android library after the device is ready.
+	 * Was triggered by the initHackrf() call in openHackrf().
+	 * See also HackrfCallbackInterface.java
+	 * 
+	 * @param hackrf	Instance of the Hackrf class that represents the open device
+	 */
+	@Override
+	public void onHackrfReady(Hackrf hackrf) {
+		tv_output.append("HackRF is ready!\n");
+		
+		this.hackrf = hackrf;
+		this.toggleButtonsEnabledIfHackrfReady(true);
+		this.toggleButtonsEnabledIfTransceiving(false);
+	}
+
+	/**
+	 * Is called by the hackrf_android library after a error occurred while opening
+	 * the device.
+	 * Was triggered by the initHackrf() call in openHackrf().
+	 * See also HackrfCallbackInterface.java
+	 * 
+	 * @param message	Short human readable error message
+	 */
+	@Override
+	public void onHackrfError(String message) {
+		tv_output.append("Error while opening HackRF: " + message +"\n");
+		this.toggleButtonsEnabledIfHackrfReady(false);
+	}
 	
+	/**
+	 * Is called (in a separate Thread) after 'new Thread(this).start()' is 
+	 * executed in info(), rx() and tx().
+	 * Will run either infoThread(), receiveThread() or transmitThread() depending
+	 * on how the task attribute is set.
+	 */
+	@Override
+	public void run() {
+		switch(this.task)
+		{
+			case PRINT_INFO:	infoThread(); break;
+			case RECEIVE:		receiveThread(); break;
+			case TRANSMIT:		transmitThread(); break;
+			default:
+		}
+		
+	}
+	
+	/**
+	 * Will run in a separate thread created in info(). Retrieves the BoardID, 
+	 * Version String, PartID and Serial number from the device
+	 * and then print the information on the screen.
+	 */
 	public void infoThread()
 	{
 		// Read out boardID, version, partID and serialNo:
@@ -220,6 +353,11 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		}
 	}
 	
+	/**
+	 * Will run in a separate thread created in rx(). Sets the HackRF into receiving 
+	 * mode and then save the received samples to a file. Will run forever until user 
+	 * presses the 'Stop' button.
+	 */
 	public void receiveThread()
 	{
 		String filename = "hackrf_receive.io";
@@ -233,8 +371,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		long lastTransceivingTime = 0;
 		
 		try {
-			// First set all settings manually:
-			// We also could do that by just pass the args to startRX(...)
+			// First set all parameters:
 			printOnScreen("Setting Sample Rate to " + sampRate + " Sps ... ");
 			hackrf.setSampleRate(sampRate, 1);
 			printOnScreen("ok.\nSetting Frequency to " + frequency + " Hz ... ");
@@ -258,23 +395,45 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		    	return;
 		    }
 			
+			// Create a file ...
 			File file = new File(Environment.getExternalStorageDirectory(), filename);
 			printOnScreen("Saving samples to " + file.getAbsolutePath() + "\n");
 			
+			// ... and open it with a buffered output stream
 			BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(file));
 			
 			// Start Receiving:
 			printOnScreen("Start Receiving... \n");
 			ArrayBlockingQueue<byte[]> queue = hackrf.startRX();
 			
+			// Run until user hits the 'Stop' button
 			while(!this.stopRequested)
 			{
-				i++;
+				i++;	// only for statistics
 				
+				// Grab one packet from the top of the queue. Will block if queue is
+				// empty and timeout after one second if the queue stays empty.
 				byte[] receivedBytes = queue.poll(1000, TimeUnit.MILLISECONDS);
 				
+				/*  HERE should be the DSP portion of the app. The receivedBytes
+				 *  variable now contains a byte array of size hackrf.getPacketSize().
+				 *  This is currently set to 16KB, but may change in the future.
+				 *  The bytes are interleaved, 8-bit, signed IQ samples (quadrature
+				 *  component first, followed by the in-phase component):
+				 *  
+				 *  [--------- first sample ----------]   [-------- second sample --------]
+				 *         Q                  I                  Q                I ...
+				 *  receivedBytes[0]   receivedBytes[1]   receivedBytes[2]       ...
+				 *  
+				 *  Note: Make sure you read from the queue fast enough, because if it runs
+				 *  full, the hackrf_android library will abort receiving and go back to
+				 *  OFF mode.
+				 */
+				
+				// We just write the whole packet into the file:
 				if(receivedBytes != null)
 				{
+					// On my Nexus 7 this is to slow for high sample rates. Nexus 5 works, though.
 					bufferedOutputStream.write(receivedBytes);
 				}
 				else
@@ -295,6 +454,8 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 					lastTransceivingTime = hackrf.getTransceivingTime();
 				}
 			}
+			
+			// After loop ended: close the file and print more statistics:
 			bufferedOutputStream.close();
 			printOnScreen( String.format("Finished! (Average Transfer Rate: %4.1f MB/s)\n", 
 											hackrf.getAverageTransceiveRate()/1000000.0));
@@ -302,17 +463,28 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 											hackrf.getTransceiverPacketCounter(), hackrf.getPacketSize(), 
 											hackrf.getTransceivingTime()/1000.0));
 		} catch (HackrfUsbException e) {
+			// This exception is thrown if a USB communication error occurres (e.g. you unplug / reset
+			// the device while receiving)
 			printOnScreen("error (USB)!\n");
 			toggleButtonsEnabledIfHackrfReady(false);
 		} catch (IOException e) {
+			// This exception is thrown if the file could not be opened or write fails.
 			printOnScreen("error (File IO)!\n");
 		} catch (InterruptedException e) {
+			// This exception is thrown if queue.poll() is interrupted
 			printOnScreen("error (Queue)!\n");
 		}
 	}
 	
+	/**
+	 * Will run in a separate thread created in tx(). Sets the HackRF into transmitting 
+	 * mode and then read the samples from a file and pass them to the HackRF. Will run 
+	 * forever until user presses the 'Stop' button.
+	 */
 	public void transmitThread()
 	{
+		// THIS IS NOT IMPLEMENTED YET!
+		
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
 		int vgaGain = 0;
 		boolean amp = false;
@@ -331,24 +503,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			printOnScreen("ok.\nSetting Antenna Power to " + antennaPower + " ... ");
 			hackrf.setAntennaPower(antennaPower);
 			printOnScreen("ok.\n\n");
+			
+			// TODO: TRANSMITTING ;)
+			
 		} catch (HackrfUsbException e) {
 			tv_output.append("error!\n");
 			toggleButtonsEnabledIfHackrfReady(false);
 		}
 		printOnScreen("TX is not implemented yet!\n");
 	}
-
-	@Override
-	public void run() {
-		switch(this.task)
-		{
-			case PRINT_INFO:	infoThread(); break;
-			case RECEIVE:		receiveThread(); break;
-			case TRANSMIT:		transmitThread(); break;
-			default:
-		}
-		
-	}
-	
-	
 }
