@@ -10,5 +10,6 @@
     <string name="tx">TX</string>
     <string name="sampRate">Sample Rate</string>
     <string name="freq">Frequency</string>
+    <string name="stop">Stop</string>
 
 </resources>

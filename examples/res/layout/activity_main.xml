@@ -12,7 +12,7 @@
         android:id="@+id/bt_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/tv_output"
+        android:layout_alignParentLeft="true"
         android:layout_below="@+id/bt_openHackRF"
         android:text="@string/info"
         android:onClick="info" />
@@ -53,21 +53,8 @@
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/bt_info"
         android:layout_below="@+id/bt_info"
+        android:layout_alignBaseline="@+id/et_sampRate"
         android:text="@string/sampRate" />
-
-    <EditText
-        android:id="@+id/et_sampRate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/tv_sampRateLabel"
-        android:layout_alignBottom="@+id/tv_sampRateLabel"
-        android:layout_alignRight="@+id/tv_output"
-        android:layout_toRightOf="@+id/tv_freqLabel"
-        android:ems="10"
-        android:inputType="number"
-        android:text="2000000" >
-
-    </EditText>
 
     <TextView
         android:id="@+id/tv_freqLabel"
@@ -75,29 +62,50 @@
         android:layout_height="wrap_content"
         android:layout_alignBaseline="@+id/et_freq"
         android:layout_alignBottom="@+id/et_freq"
-        android:layout_alignLeft="@+id/tv_sampRateLabel"
+        android:layout_alignParentLeft="true"
         android:text="@string/freq" />
-
-    <EditText
-        android:id="@+id/et_freq"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/et_sampRate"
-        android:layout_below="@+id/tv_sampRateLabel"
-        android:layout_toRightOf="@+id/tv_freqLabel"
-        android:ems="10"
-        android:inputType="number"
-        android:text="97000000" >
-    </EditText>
 
     <TextView
         android:id="@+id/tv_output"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/bt_openHackRF"
+        android:layout_alignParentLeft="true"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_below="@+id/et_freq"
         android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/bt_stop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/bt_tx"
+        android:layout_alignBottom="@+id/bt_tx"
+        android:layout_toRightOf="@+id/bt_tx"
+        android:text="@string/stop" 
+        android:onClick="stop" />
+
+    <EditText
+        android:id="@+id/et_freq"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignRight="@+id/tv_output"
+        android:layout_below="@+id/et_sampRate"
+        android:ems="10"
+        android:inputType="number"
+        android:text="97000000" />
+
+    <EditText
+        android:id="@+id/et_sampRate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/bt_info"
+        android:layout_toRightOf="@+id/tv_sampRateLabel"
+        android:ems="10"
+        android:inputType="number"
+        android:text="2000000" >
+
+        <requestFocus />
+    </EditText>
 
 </RelativeLayout>
