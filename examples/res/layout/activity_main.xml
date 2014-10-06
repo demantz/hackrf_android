@@ -89,7 +89,7 @@
         android:id="@+id/et_freq"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/tv_output"
+        android:layout_toRightOf="@+id/tv_freqLabel"
         android:layout_below="@+id/et_sampRate"
         android:ems="10"
         android:inputType="number"

@@ -766,18 +766,14 @@ public class Hackrf implements Runnable{
 	}
 	
 	/**
-	 * Stops receiving.
+	 * Stops receiving or transmitting.
 	 * 
 	 * @throws	HackrfUsbException
 	 */
-	public void stopRX() throws HackrfUsbException
+	public void stop() throws HackrfUsbException
 	{
 		// Signal the HackRF Device to start receiving:
 		this.setTransceiverMode(HACKRF_TRANSCEIVER_MODE_OFF);
-		
-		// Reset the packet counter and start time
-		this.transceiveStartTime = 0;
-		this.transceivePacketCounter = 0;
 	}
 	
 	/**
@@ -806,7 +802,7 @@ public class Hackrf implements Runnable{
 			    if(	request.queue(buffer, getPacketSize()) == false)
 			    {
 		            Log.e(logTag,"receiveLoop: Couldn't queue USB Request.");
-		            this.stopRX();
+		            this.stop();
 			    }
 			}
 			
@@ -850,7 +846,7 @@ public class Hackrf implements Runnable{
 		if(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_RECEIVE)
 		{
 			try {
-				this.stopRX();
+				this.stop();
 			} catch (HackrfUsbException e) {
 				Log.e(logTag,"receiveLoop: Error while stopping RX!");
 			}

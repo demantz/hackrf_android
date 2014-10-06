@@ -25,7 +25,12 @@ import com.mantz_it.hackrf_android.HackrfCallbackInterface;
 import com.mantz_it.hackrf_android.HackrfUsbException;
 
 public class MainActivity extends Activity implements Runnable, HackrfCallbackInterface{
-
+	
+	private Button bt_openHackRF = null;
+	private Button bt_info = null;
+	private Button bt_rx = null;
+	private Button bt_tx = null;
+	private Button bt_stop = null;
 	private EditText et_sampRate = null;
 	private EditText et_freq = null;
 	private TextView tv_output = null;
@@ -51,9 +56,14 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		
 		handler = new Handler();
 		
-		et_sampRate = (EditText) findViewById(R.id.et_sampRate);
-		et_freq = (EditText) findViewById(R.id.et_freq);
-		tv_output = (TextView) findViewById(R.id.tv_output);
+		bt_info 		= ((Button) this.findViewById(R.id.bt_info));
+   		bt_rx 			= ((Button) this.findViewById(R.id.bt_rx));
+   		bt_tx			= ((Button) this.findViewById(R.id.bt_tx));
+   		bt_stop			= ((Button) this.findViewById(R.id.bt_stop));
+   		bt_openHackRF	= ((Button) this.findViewById(R.id.bt_openHackRF));
+		et_sampRate 	= (EditText) findViewById(R.id.et_sampRate);
+		et_freq 		= (EditText) findViewById(R.id.et_freq);
+		tv_output 		= (TextView) findViewById(R.id.tv_output);
 		tv_output.setMovementMethod(new ScrollingMovementMethod());
 		this.toggleButtonsEnabledIfHackrfReady(false);
 	}
@@ -98,21 +108,29 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		// initHackrf() is asynchronous. this.onHackrfReady() will be called as soon as the device is ready.
 	}
 	
-	public void toggleButtonsEnabledIfHackrfReady(boolean enable)
+	public void toggleButtonsEnabledIfHackrfReady(final boolean enable)
 	{
-		((Button) this.findViewById(R.id.bt_info)).setEnabled(enable);
-		((Button) this.findViewById(R.id.bt_rx)).setEnabled(enable);
-		((Button) this.findViewById(R.id.bt_tx)).setEnabled(enable);
-		((Button) this.findViewById(R.id.bt_stop)).setEnabled(enable);
-		((Button) this.findViewById(R.id.bt_openHackRF)).setEnabled(!enable);
+		handler.post(new Runnable() {
+	           public void run() {
+	        	    bt_info.setEnabled(enable);
+		       		bt_rx.setEnabled(enable);
+		       		bt_tx.setEnabled(enable);
+		       		bt_stop.setEnabled(enable);
+		       		bt_openHackRF.setEnabled(!enable);
+	                }
+	            });
 	}
 	
-	public void toggleButtonsEnabledIfTransceiving(boolean enable)
+	public void toggleButtonsEnabledIfTransceiving(final boolean enable)
 	{
-		((Button) this.findViewById(R.id.bt_info)).setEnabled(!enable);
-		((Button) this.findViewById(R.id.bt_rx)).setEnabled(!enable);
-		((Button) this.findViewById(R.id.bt_tx)).setEnabled(!enable);
-		((Button) this.findViewById(R.id.bt_stop)).setEnabled(enable);
+		handler.post(new Runnable() {
+	           public void run() {
+	        	    bt_info.setEnabled(!enable);
+		       		bt_rx.setEnabled(!enable);
+		       		bt_tx.setEnabled(!enable);
+		       		bt_stop.setEnabled(enable);
+	                }
+	            });
 	}
 
 	@Override
@@ -169,6 +187,16 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	{
 		this.stopRequested = true;
 		toggleButtonsEnabledIfTransceiving(false);
+		
+		if(hackrf != null)
+		{
+			try {
+				hackrf.stop();
+			} catch (HackrfUsbException e) {
+				printOnScreen("Error (USB)!\n");
+				toggleButtonsEnabledIfHackrfReady(false);
+			}
+		}
 	}
 	
 	public void infoThread()
@@ -251,7 +279,9 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 				}
 				else
 				{
-					printOnScreen("error (Queue is empty)!\n");
+					printOnScreen("Error: Queue is empty! (This happens most often because the queue ran full"
+							+ " which causes the Hackrf class to stop receiving. Writing the samples to a file"
+							+ " seems to be working to slowly... try a lower sample rate.)\n");
 					break;
 				}
 				
