@@ -35,9 +35,16 @@ Implemented Features
 * Example App that shows how to use the library
 
 
+Testet Devices
+--------------
+* Nexus 5
+* Nexus 7 (slow Filewriter, see Known Issues)
+
+
 Known Issues
 ------------
 * USB connection is too slow for Sample Rates >15 Msps (testet on Nexus 7)
+  (update: On the Nexus 5 it works like a charm with 15Msps!)
 * Tx not implemented yet
 * FileWriter in example app is too slow. Only works for ~ 2 Msps.
 * Not much testing so far...
