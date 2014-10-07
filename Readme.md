@@ -64,6 +64,10 @@ The hackrf_android.jar and the HackRF_Test.apk files are also in this repository
 so that they can be used without building them. But they won't be synched to the
 latest code base all the time.
 
+A short howto to get started can be found on this blog post:
+[http://tech.mantz-it.com/2014/10/hackrfandroid-using-hackrf-with-android.html]
+(http://tech.mantz-it.com/2014/10/hackrfandroid-using-hackrf-with-android.html)
+
 
 License
 -------
