@@ -1,7 +1,10 @@
 package com.mantz_it.hackrf_test;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Formatter;
@@ -80,6 +83,9 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	private static final int TRANSMIT = 2;	
 	
 	private boolean stopRequested = false;	// Used to stop receive/transmit thread
+	
+	// Set this to true to rewind sample file every time the end is reached:
+	private boolean repeatTransmitting = false; 
 	
 	// This method is called on application startup by the Android System:
 	@Override
@@ -457,11 +463,12 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			
 			// After loop ended: close the file and print more statistics:
 			bufferedOutputStream.close();
-			printOnScreen( String.format("Finished! (Average Transfer Rate: %4.1f MB/s)\n", 
+			printOnScreen( String.format("Finished! (Average Transfer Rate: %4.1f MB/s\n", 
 											hackrf.getAverageTransceiveRate()/1000000.0));
 			printOnScreen(String.format("Recorded %d packets (each %d Bytes) in %5.3f Seconds.\n\n", 
 											hackrf.getTransceiverPacketCounter(), hackrf.getPacketSize(), 
 											hackrf.getTransceivingTime()/1000.0));
+			toggleButtonsEnabledIfTransceiving(false);
 		} catch (HackrfUsbException e) {
 			// This exception is thrown if a USB communication error occurres (e.g. you unplug / reset
 			// the device while receiving)
@@ -470,9 +477,11 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		} catch (IOException e) {
 			// This exception is thrown if the file could not be opened or write fails.
 			printOnScreen("error (File IO)!\n");
+			toggleButtonsEnabledIfTransceiving(false);
 		} catch (InterruptedException e) {
 			// This exception is thrown if queue.poll() is interrupted
 			printOnScreen("error (Queue)!\n");
+			toggleButtonsEnabledIfTransceiving(false);
 		}
 	}
 	
@@ -483,12 +492,15 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void transmitThread()
 	{
-		// THIS IS NOT IMPLEMENTED YET!
-		
+		String filename = "hackrf_receive.io";
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
 		int vgaGain = 0;
 		boolean amp = false;
 		boolean antennaPower = false;
+		int i = 0;
+		long lastTransceiverPacketCounter = 0;
+		long lastTransceivingTime = 0;
+		
 		try {
 			printOnScreen("Setting Sample Rate to " + sampRate + " Sps ... ");
 			hackrf.setSampleRate(sampRate, 1);
@@ -504,12 +516,87 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			hackrf.setAntennaPower(antennaPower);
 			printOnScreen("ok.\n\n");
 			
-			// TODO: TRANSMITTING ;)
+			// Check if external memory is available:
+			if(!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED))
+		    {
+				printOnScreen("External Media Storage not available.\n\n");
+		    	return;
+		    }
 			
+			// Open a file ...
+			File file = new File(Environment.getExternalStorageDirectory(), filename);
+			printOnScreen("Reading samples from " + file.getAbsolutePath() + "\n");
+			if(!file.exists())
+			{
+				printOnScreen("Error: File does not exist!");
+				return;
+			}
+			
+			// ... and open it with a buffered input stream
+			BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+			
+			// Start Transmitting:
+			printOnScreen("Start Transmitting... \n");
+			ArrayBlockingQueue<byte[]> queue = hackrf.startTX();
+			
+			// Run until user hits the 'Stop' button
+			while(!this.stopRequested)
+			{
+				i++;	// only for statistics
+				byte[] packet = new byte[hackrf.getPacketSize()];
+				
+				// Read one packet from the file:
+				if(bufferedInputStream.read(packet, 0, packet.length) != packet.length)
+				{
+					// If repeatTransmitting is set, we rewind. Otherwise we stop:
+					if(this.repeatTransmitting)
+					{
+						printOnScreen("Reached End of File. Start over.\n");
+						bufferedInputStream.close();
+						new BufferedInputStream(new FileInputStream(file));
+					}
+					else
+					{
+						printOnScreen("Reached End of File. Stop.\n");
+						break;
+					}
+				}
+				
+				// Put the packet into the queue:
+				if(queue.offer(packet, 1000, TimeUnit.MILLISECONDS) == false)
+				{
+					printOnScreen("Error: Queue is full. Stop transmitting.\n");
+					break;
+				}
+				
+				// print statistics
+				if(i%1000 == 0)
+				{
+					long bytes = (hackrf.getTransceiverPacketCounter() - lastTransceiverPacketCounter) * hackrf.getPacketSize();
+					double time = (hackrf.getTransceivingTime() - lastTransceivingTime)/1000.0;
+					printOnScreen( String.format("Current Transfer Rate: %4.1f MB/s\n",(bytes/time)/1000000.0));
+					lastTransceiverPacketCounter = hackrf.getTransceiverPacketCounter();
+					lastTransceivingTime = hackrf.getTransceivingTime();
+				}
+			}
+			
+			// After loop ended: close the file and print more statistics:
+			bufferedInputStream.close();
+			printOnScreen( String.format("Finished! (Average Transfer Rate: %4.1f MB/s)\n", 
+											hackrf.getAverageTransceiveRate()/1000000.0));
+			printOnScreen(String.format("Transmitted %d packets (each %d Bytes) in %5.3f Seconds.\n\n", 
+											hackrf.getTransceiverPacketCounter(), hackrf.getPacketSize(), 
+											hackrf.getTransceivingTime()/1000.0));
+			toggleButtonsEnabledIfTransceiving(false);
 		} catch (HackrfUsbException e) {
-			tv_output.append("error!\n");
+			printOnScreen("Error (USB)!\n");
 			toggleButtonsEnabledIfHackrfReady(false);
+		} catch (IOException e) {
+			printOnScreen("Error (File IO)!\n");
+			toggleButtonsEnabledIfTransceiving(false);
+		} catch (InterruptedException e) {
+			printOnScreen("Error (Queue interrupted)!\n");
+			toggleButtonsEnabledIfTransceiving(false);
 		}
-		printOnScreen("TX is not implemented yet!\n");
 	}
 }

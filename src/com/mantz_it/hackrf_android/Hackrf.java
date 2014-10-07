@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -760,7 +762,7 @@ public class Hackrf implements Runnable{
 	/**
 	 * Starts receiving.
 	 * 
-	 * @return 	A ArrayBlockingQueue that will fill with the samples as they arrive. 
+	 * @return 	An ArrayBlockingQueue that will fill with the samples as they arrive. 
 	 * 			Each queue element is a block of samples (byte[]) of size getPacketSize().
 	 * @throws	HackrfUsbException
 	 */
@@ -771,6 +773,32 @@ public class Hackrf implements Runnable{
 	    
 		// Signal the HackRF Device to start receiving:
 		this.setTransceiverMode(HACKRF_TRANSCEIVER_MODE_RECEIVE);
+		
+		// Start the Thread to queue the received samples:
+		this.usbThread = new Thread(this);  
+		this.usbThread.start();
+		
+		// Reset the packet counter and start time for statistics:
+		this.transceiveStartTime = System.currentTimeMillis();
+		this.transceivePacketCounter = 0;
+		
+		return this.queue;
+	}
+	
+	/**
+	 * Starts transmitting.
+	 * 
+	 * @return 	An ArrayBlockingQueue from which the hackrf will read the samples to transmit. 
+	 * 			Each queue element must be a block of samples (byte[]) of size getPacketSize().
+	 * @throws	HackrfUsbException
+	 */
+	public ArrayBlockingQueue<byte[]> startTX() throws HackrfUsbException
+	{
+		// Flush the queue
+	    this.queue.clear();
+	    
+		// Signal the HackRF Device to start transmitting:
+		this.setTransceiverMode(HACKRF_TRANSCEIVER_MODE_TRANSMIT);
 		
 		// Start the Thread to queue the received samples:
 		this.usbThread = new Thread(this);  
@@ -800,27 +828,28 @@ public class Hackrf implements Runnable{
 	 */
 	private void receiveLoop()
 	{
+		UsbRequest[] usbRequests = new UsbRequest[numUsbRequests];
 		ByteBuffer buffer;
-		UsbRequest request;
 		
 		try
 		{
-			// Allocate USB Requests
+			// Create, initialize and queue all usb requests:
 			for(int i = 0; i < numUsbRequests; i++)
 			{
-				// Allocate a buffer that will be passed to the USB Device encapsulated in the UsbRequest
-			    buffer = ByteBuffer.allocate(getPacketSize());
-			    
+				// Create a ByteBuffer for the request:
+				buffer = ByteBuffer.allocate(getPacketSize());
+				
 			    // Initialize the USB Request:
-			    request = new UsbRequest();
-			    request.initialize(usbConnection, usbEndpointIN);
-			    request.setClientData(buffer);
+				usbRequests[i] = new UsbRequest();
+				usbRequests[i].initialize(usbConnection, usbEndpointIN);
+				usbRequests[i].setClientData(buffer);
 			    
 			    // Queue the request
-			    if(	request.queue(buffer, getPacketSize()) == false)
+			    if(	usbRequests[i].queue(buffer, getPacketSize()) == false)
 			    {
 		            Log.e(logTag,"receiveLoop: Couldn't queue USB Request.");
 		            this.stop();
+		            break;
 			    }
 			}
 			
@@ -828,7 +857,7 @@ public class Hackrf implements Runnable{
 		    while(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_RECEIVE)
 		    {
 			    // Wait for a request to return. This will block until one of the requests is ready.
-			    request = usbConnection.requestWait(); 
+		    	UsbRequest request = usbConnection.requestWait(); 
 			    
 			    if(request == null)
 			    {
@@ -860,6 +889,13 @@ public class Hackrf implements Runnable{
 			Log.e(logTag,"receiveLoop: USB Error!");
 		}
 		
+		// Receiving is done. Cancel and close all usb requests:
+	    for(UsbRequest request: usbRequests)
+	    {
+	    	request.cancel();
+	    	//request.close();
+	    }
+		
 		// If the transceiverMode is still on RECEIVE, we stop Receiving:
 		if(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_RECEIVE)
 		{
@@ -867,6 +903,111 @@ public class Hackrf implements Runnable{
 				this.stop();
 			} catch (HackrfUsbException e) {
 				Log.e(logTag,"receiveLoop: Error while stopping RX!");
+			}
+		}
+	}
+	
+	/**
+	 * This method will be executed in a separate Thread after the HackRF starts transmitting
+	 * Samples. It will return as soon as the transceiverMode changes or an error occurs.
+	 */
+	private void transmitLoop()
+	{
+		UsbRequest[] usbRequests = new UsbRequest[numUsbRequests];
+		ByteBuffer buffer;
+		byte[] packet;
+		
+		try
+		{
+			// Create, initialize and queue all usb requests:
+			for(int i = 0; i < numUsbRequests; i++)
+			{
+				// Create a ByteBuffer for the request:
+				buffer = ByteBuffer.allocate(getPacketSize());
+				
+				// Get a packet from the queue:
+			    packet = (byte[]) queue.poll(1000, TimeUnit.MILLISECONDS);
+			    if(packet == null || packet.length != getPacketSize())
+			    {
+			    	Log.e(logTag,"transmitLoop: Queue empty or wrong packet format. Abort.");
+			    	this.stop();
+			    	break;
+			    }
+			    
+			    // Put the packet into the buffer:
+			    buffer.clear();
+			    buffer.put(packet);
+				
+			    // Initialize the USB Request:
+				usbRequests[i] = new UsbRequest();
+				usbRequests[i].initialize(usbConnection, usbEndpointOUT);
+				usbRequests[i].setClientData(buffer);
+			    
+			    // Queue the request
+			    if(	usbRequests[i].queue(buffer, getPacketSize()) == false)
+			    {
+		            Log.e(logTag,"receiveLoop: Couldn't queue USB Request.");
+		            this.stop();
+		            break;
+			    }
+			}
+			
+			// Run loop until transceiver mode changes...
+		    while(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_TRANSMIT)
+		    {
+			    // Wait for a request to return. This will block until one of the requests is ready.
+		    	UsbRequest request = usbConnection.requestWait(); 
+			    
+			    if(request == null)
+			    {
+			    	Log.e(logTag,"transmitLoop: Didn't receive USB Request.");
+			    	break;
+			    }
+			    
+			    // Extract the buffer
+			    buffer = (ByteBuffer) request.getClientData();
+			    
+			    // Increment the packetCounter (for statistics)
+			    this.transceivePacketCounter++;
+			    
+			    // Get the next packet from the queue:
+			    packet = (byte[]) queue.poll(1000, TimeUnit.MILLISECONDS);
+			    if(packet == null || packet.length != getPacketSize())
+			    {
+			    	Log.e(logTag,"transmitLoop: Queue empty or wrong packet format. Stop transmitting.");
+			    	break;
+			    }
+			    
+			    // Put the packet into the buffer:
+			    buffer.clear();
+			    buffer.put(packet);
+			    
+			    // Queue the request again...
+			    if(request.queue(buffer, getPacketSize()) == false){
+	                Log.e(logTag,"transmitLoop: Couldn't queue USB Request.");
+	                break;
+			    }
+		    }
+		} catch (HackrfUsbException e) {
+			Log.e(logTag,"transmitLoop: USB Error!");
+		} catch (InterruptedException e) {
+			Log.e(logTag,"transmitLoop: Interrup while waiting on queue!");
+		}
+		
+		// Transmitting is done. Cancel and close all usb requests:
+	    for(UsbRequest request: usbRequests)
+	    {
+	    	request.cancel();
+	    	//request.close();
+	    }
+		
+		// If the transceiverMode is still on TRANSMIT, we stop Transmitting:
+		if(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_TRANSMIT)
+		{
+			try {
+				this.stop();
+			} catch (HackrfUsbException e) {
+				Log.e(logTag,"transmitLoop: Error while stopping TX!");
 			}
 		}
 	}
@@ -881,7 +1022,7 @@ public class Hackrf implements Runnable{
 		{
 			case HACKRF_TRANSCEIVER_MODE_RECEIVE: 	receiveLoop();
 													break;
-			case HACKRF_TRANSCEIVER_MODE_TRANSMIT: //transmitLoop();
+			case HACKRF_TRANSCEIVER_MODE_TRANSMIT:  transmitLoop();
 													break;
 			default:
 		}
