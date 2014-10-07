@@ -37,16 +37,18 @@ Implemented Features
 
 Testet Devices
 --------------
-* Nexus 5
-* Nexus 7 (slow Filewriter, see Known Issues)
 
+|    Device    | Does it work? | Tested sample rate with example app |     Tester    |
+|:------------:|:-------------:|:-----------------------------------:|:-------------:|
+| Nexus 7 2012 |      yes      | ~ 2 Msps, Filewriter is too slow.   | Dennis Mantz  |
+| Nexus 7 2013 |      yes      | 15 Msps                             | @kx3companion |
+| Nexus 5      |      yes      | 15 Msps                             | Dennis Mantz  |
+| Moto G       |      yes      | ~ 2 Msps                            | @kx3companion |
 
 Known Issues
 ------------
 * USB connection is too slow for Sample Rates >15 Msps (testet on Nexus 7)
-  (update: On the Nexus 5 it works like a charm with 15Msps!)
-* Tx not implemented yet
-* FileWriter in example app is too slow. Only works for ~ 2 Msps.
+* FileWriter in example app is too slow. Only works for ~ 2 Msps on old devices.
 * Not much testing so far...
 
 
