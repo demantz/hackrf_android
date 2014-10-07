@@ -494,7 +494,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	{
 		String filename = "hackrf_receive.io";
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
-		int vgaGain = 0;
+		int vgaGain = 20;
 		boolean amp = false;
 		boolean antennaPower = false;
 		int i = 0;
