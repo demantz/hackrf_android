@@ -865,6 +865,10 @@ public class Hackrf implements Runnable{
 			    	break;
 			    }
 			    
+			 // Make sure we got an UsbRequest for the IN endpoint!
+		    	if(request.getEndpoint() != usbEndpointIN)
+		    		continue;
+			    
 			    // Extract the buffer
 			    buffer = (ByteBuffer) request.getClientData();
 			    
@@ -893,7 +897,7 @@ public class Hackrf implements Runnable{
 	    for(UsbRequest request: usbRequests)
 	    {
 	    	request.cancel();
-	    	//request.close();
+	    	//request.close();    <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
 	    }
 		
 		// If the transceiverMode is still on RECEIVE, we stop Receiving:
@@ -956,13 +960,17 @@ public class Hackrf implements Runnable{
 		    while(this.transceiverMode == HACKRF_TRANSCEIVER_MODE_TRANSMIT)
 		    {
 			    // Wait for a request to return. This will block until one of the requests is ready.
-		    	UsbRequest request = usbConnection.requestWait(); 
+		    	UsbRequest request = usbConnection.requestWait();
 			    
 			    if(request == null)
 			    {
 			    	Log.e(logTag,"transmitLoop: Didn't receive USB Request.");
 			    	break;
 			    }
+			    
+			    // Make sure we got an UsbRequest for the OUT endpoint!
+		    	if(request.getEndpoint() != usbEndpointOUT)
+		    		continue;
 			    
 			    // Extract the buffer
 			    buffer = (ByteBuffer) request.getClientData();
@@ -998,7 +1006,7 @@ public class Hackrf implements Runnable{
 	    for(UsbRequest request: usbRequests)
 	    {
 	    	request.cancel();
-	    	//request.close();
+	    	//request.close();   <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
 	    }
 		
 		// If the transceiverMode is still on TRANSMIT, we stop Transmitting:
