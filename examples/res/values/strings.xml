@@ -14,6 +14,7 @@
     <string name="amp">Amplifier</string>
     <string name="antenna">Antenna Port Power</string>
     <string name="filename">Filename</string>
-    <string name="vgaGain">Gain</string>
+    <string name="vgaGain">VGA Gain</string>
+    <string name="lnaGain">LNA Gain</string>
 
 </resources>

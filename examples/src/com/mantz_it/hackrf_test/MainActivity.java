@@ -69,6 +69,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	private EditText et_freq = null;
 	private EditText et_filename = null;
 	private SeekBar sb_vgaGain = null;
+	private SeekBar sb_lnaGain = null;
 	private CheckBox cb_amp = null;
 	private CheckBox cb_antenna = null;
 	private TextView tv_output = null;
@@ -80,6 +81,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	private long frequency = 0;
 	private String filename = null;
 	private int vgaGain = 0;
+	private int lnaGain = 0;
 	private boolean amp = false;
 	private boolean antennaPower = false;
 	
@@ -119,6 +121,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		et_freq 		= (EditText) this.findViewById(R.id.et_freq);
 		et_filename 	= (EditText) this.findViewById(R.id.et_filename);
 		sb_vgaGain 		= (SeekBar) this.findViewById(R.id.sb_vgaGain);
+		sb_lnaGain 		= (SeekBar) this.findViewById(R.id.sb_lnaGain);
 		cb_amp 			= (CheckBox) this.findViewById(R.id.cb_amp);
 		cb_antenna 		= (CheckBox) this.findViewById(R.id.cb_antenna);
 		tv_output 		= (TextView) findViewById(R.id.tv_output);
@@ -205,6 +208,20 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	}
 	
 	/**
+	 * Will read the values from the GUI elements into the corresponding variables
+	 */
+	public void readGuiElements()
+	{
+		sampRate = Integer.valueOf(et_sampRate.getText().toString());
+		frequency = (long) Integer.valueOf(et_freq.getText().toString());
+		filename = et_filename.getText().toString();
+		vgaGain = sb_vgaGain.getProgress();
+		lnaGain = sb_vgaGain.getProgress();
+		amp = cb_amp.isChecked();
+		antennaPower = cb_antenna.isChecked();
+	}
+	
+	/**
 	 * Is called if the user presses the 'Open HackRF' Button. Will initialize the
 	 * HackRF device.
 	 * 
@@ -249,12 +266,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	{
 		if (hackrf != null)
 		{
-			sampRate = Integer.valueOf(et_sampRate.getText().toString());
-			frequency = (long) Integer.valueOf(et_freq.getText().toString());
-			filename = et_filename.getText().toString();
-			vgaGain = sb_vgaGain.getProgress();
-			amp = cb_amp.isChecked();
-			antennaPower = cb_antenna.isChecked();
+			this.readGuiElements();
 			this.task = RECEIVE;
 			this.stopRequested = false;
 			new Thread(this).start();
@@ -274,12 +286,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	{
 		if (hackrf != null)
 		{
-			sampRate = Integer.valueOf(et_sampRate.getText().toString());
-			frequency = (long) Integer.valueOf(et_freq.getText().toString());
-			filename = et_filename.getText().toString();
-			vgaGain = sb_vgaGain.getProgress();
-			amp = cb_amp.isChecked();
-			antennaPower = cb_antenna.isChecked();
+			this.readGuiElements();
 			this.task = TRANSMIT;
 			this.stopRequested = false;
 			new Thread(this).start();
@@ -391,12 +398,14 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void receiveThread()
 	{
-		
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
-		int lnaGain = 8;
 		int i = 0;
 		long lastTransceiverPacketCounter = 0;
 		long lastTransceivingTime = 0;
+		
+		// vgaGain and lnaGain are still values from 0-100; scale them to the right range:
+		vgaGain = (vgaGain * 62) / 100;
+		lnaGain = (lnaGain * 40) / 100;
 		
 		try {
 			// First set all parameters:
@@ -524,6 +533,9 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		int i = 0;
 		long lastTransceiverPacketCounter = 0;
 		long lastTransceivingTime = 0;
+		
+		// vgaGain is still a value from 0-100; scale it to the right range:
+		vgaGain = (vgaGain * 47) / 100;
 		
 		try {
 			printOnScreen("Setting Sample Rate to " + sampRate + " Sps ... ");

@@ -107,16 +107,6 @@
         android:layout_alignParentRight="true"
         android:text="hackrf_android.io" />
     
-    <SeekBar
-        android:id="@+id/sb_vgaGain"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_below="@+id/et_filename"
-        android:layout_toRightOf="@+id/tv_vgaGain"
-        android:max="47"
-        android:progress="20" />
-
     <TextView
         android:id="@+id/tv_vgaGain"
         android:layout_width="wrap_content"
@@ -124,13 +114,41 @@
         android:layout_alignBottom="@+id/sb_vgaGain"
         android:layout_alignParentLeft="true"
         android:text="@string/vgaGain" />
+    
+    <SeekBar
+        android:id="@+id/sb_vgaGain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/et_filename"
+        android:layout_toRightOf="@+id/tv_vgaGain"
+        android:max="100"
+        android:progress="40" />
+
+    <TextView
+        android:id="@+id/tv_lnaGain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/sb_lnaGain"
+        android:layout_alignParentLeft="true"
+        android:text="@string/lnaGain" />
+    
+    <SeekBar
+        android:id="@+id/sb_lnaGain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/sb_vgaGain"
+        android:layout_toRightOf="@+id/tv_lnaGain"
+        android:max="100"
+        android:progress="60" />
 
     <CheckBox
         android:id="@+id/cb_amp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/sb_vgaGain"
+        android:layout_below="@+id/sb_lnaGain"
         android:text="@string/amp" />
     
     <CheckBox
@@ -138,7 +156,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
-        android:layout_below="@+id/sb_vgaGain"
+        android:layout_below="@+id/sb_lnaGain"
         android:text="@string/antenna" />
     
     <TextView
