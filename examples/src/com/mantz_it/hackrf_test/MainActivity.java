@@ -20,7 +20,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.mantz_it.hackrf_android.Hackrf;
@@ -65,6 +67,10 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	private Button bt_stop = null;
 	private EditText et_sampRate = null;
 	private EditText et_freq = null;
+	private EditText et_filename = null;
+	private SeekBar sb_vgaGain = null;
+	private CheckBox cb_amp = null;
+	private CheckBox cb_antenna = null;
 	private TextView tv_output = null;
 	
 	// Reference to the hackrf instance:
@@ -72,6 +78,10 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	
 	private int sampRate = 0;
 	private long frequency = 0;
+	private String filename = null;
+	private int vgaGain = 0;
+	private boolean amp = false;
+	private boolean antennaPower = false;
 	
 	// The handler is used to access GUI elements from other threads then the GUI thread
 	private Handler handler = null;
@@ -86,6 +96,9 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	
 	// Set this to true to rewind sample file every time the end is reached:
 	private boolean repeatTransmitting = false; 
+	
+	// Folder name for capture files:
+	private static final String foldername = "Test_HackRF";
 	
 	// This method is called on application startup by the Android System:
 	@Override
@@ -102,8 +115,12 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
    		bt_tx			= ((Button) this.findViewById(R.id.bt_tx));
    		bt_stop			= ((Button) this.findViewById(R.id.bt_stop));
    		bt_openHackRF	= ((Button) this.findViewById(R.id.bt_openHackRF));
-		et_sampRate 	= (EditText) findViewById(R.id.et_sampRate);
-		et_freq 		= (EditText) findViewById(R.id.et_freq);
+		et_sampRate 	= (EditText) this.findViewById(R.id.et_sampRate);
+		et_freq 		= (EditText) this.findViewById(R.id.et_freq);
+		et_filename 	= (EditText) this.findViewById(R.id.et_filename);
+		sb_vgaGain 		= (SeekBar) this.findViewById(R.id.sb_vgaGain);
+		cb_amp 			= (CheckBox) this.findViewById(R.id.cb_amp);
+		cb_antenna 		= (CheckBox) this.findViewById(R.id.cb_antenna);
 		tv_output 		= (TextView) findViewById(R.id.tv_output);
 		tv_output.setMovementMethod(new ScrollingMovementMethod());	// make it scroll!
 		this.toggleButtonsEnabledIfHackrfReady(false);	// Disable all buttons except for 'Open HackRF'
@@ -234,6 +251,10 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		{
 			sampRate = Integer.valueOf(et_sampRate.getText().toString());
 			frequency = (long) Integer.valueOf(et_freq.getText().toString());
+			filename = et_filename.getText().toString();
+			vgaGain = sb_vgaGain.getProgress();
+			amp = cb_amp.isChecked();
+			antennaPower = cb_antenna.isChecked();
 			this.task = RECEIVE;
 			this.stopRequested = false;
 			new Thread(this).start();
@@ -255,6 +276,10 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		{
 			sampRate = Integer.valueOf(et_sampRate.getText().toString());
 			frequency = (long) Integer.valueOf(et_freq.getText().toString());
+			filename = et_filename.getText().toString();
+			vgaGain = sb_vgaGain.getProgress();
+			amp = cb_amp.isChecked();
+			antennaPower = cb_antenna.isChecked();
 			this.task = TRANSMIT;
 			this.stopRequested = false;
 			new Thread(this).start();
@@ -366,12 +391,9 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void receiveThread()
 	{
-		String filename = "hackrf_receive.io";
+		
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
-		int vgaGain = 20;
 		int lnaGain = 8;
-		boolean amp = false;
-		boolean antennaPower = false;
 		int i = 0;
 		long lastTransceiverPacketCounter = 0;
 		long lastTransceivingTime = 0;
@@ -402,7 +424,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		    }
 			
 			// Create a file ...
-			File file = new File(Environment.getExternalStorageDirectory(), filename);
+			// If no filename was given, write to /dev/null
+			File file;
+			if(filename.equals(""))
+				file = new File("/dev/", "null");
+			else
+				file = new File(Environment.getExternalStorageDirectory() + "/" + foldername, filename);
+			file.getParentFile().mkdir();	// Create folder if it does not exist
 			printOnScreen("Saving samples to " + file.getAbsolutePath() + "\n");
 			
 			// ... and open it with a buffered output stream
@@ -455,7 +483,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 				{
 					long bytes = (hackrf.getTransceiverPacketCounter() - lastTransceiverPacketCounter) * hackrf.getPacketSize();
 					double time = (hackrf.getTransceivingTime() - lastTransceivingTime)/1000.0;
-					printOnScreen( String.format("Current Transfer Rate: %4.1f MB/s)\n",(bytes/time)/1000000.0));
+					printOnScreen( String.format("Current Transfer Rate: %4.1f MB/s\n",(bytes/time)/1000000.0));
 					lastTransceiverPacketCounter = hackrf.getTransceiverPacketCounter();
 					lastTransceivingTime = hackrf.getTransceivingTime();
 				}
@@ -492,11 +520,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void transmitThread()
 	{
-		String filename = "hackrf_receive.io";
 		int basebandFilterWidth = Hackrf.computeBasebandFilterBandwidth((int)(0.75*sampRate));
-		int vgaGain = 20;
-		boolean amp = false;
-		boolean antennaPower = false;
 		int i = 0;
 		long lastTransceiverPacketCounter = 0;
 		long lastTransceivingTime = 0;
@@ -524,7 +548,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		    }
 			
 			// Open a file ...
-			File file = new File(Environment.getExternalStorageDirectory(), filename);
+			File file = new File(Environment.getExternalStorageDirectory() + "/" + foldername, filename);
 			printOnScreen("Reading samples from " + file.getAbsolutePath() + "\n");
 			if(!file.exists())
 			{

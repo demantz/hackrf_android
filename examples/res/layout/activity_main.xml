@@ -9,11 +9,19 @@
     tools:context="com.mantz_it.hackrf_test.MainActivity" >
 
     <Button
-        android:id="@+id/bt_info"
+        android:id="@+id/bt_openHackRF"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/bt_openHackRF"
+        android:layout_alignParentTop="true"
+        android:onClick="openHackrf"
+        android:text="@string/open" />
+    
+    <Button
+        android:id="@+id/bt_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/bt_openHackRF"
         android:text="@string/info"
         android:onClick="info" />
 
@@ -21,8 +29,6 @@
         android:id="@+id/bt_rx"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/bt_info"
-        android:layout_alignBottom="@+id/bt_info"
         android:layout_toRightOf="@+id/bt_info"
         android:text="@string/rx"
         android:onClick="rx" />
@@ -31,81 +37,118 @@
         android:id="@+id/bt_tx"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/bt_rx"
-        android:layout_alignBottom="@+id/bt_rx"
         android:layout_toRightOf="@+id/bt_rx"
         android:text="@string/tx"
         android:onClick="tx" />
 
     <Button
-        android:id="@+id/bt_openHackRF"
+        android:id="@+id/bt_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:onClick="openHackrf"
-        android:text="@string/openHackrfDevice" />
+        android:layout_toRightOf="@+id/bt_tx"
+        android:text="@string/stop" 
+        android:onClick="stop" />
 
     <TextView
         android:id="@+id/tv_sampRateLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/bt_info"
-        android:layout_below="@+id/bt_info"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/bt_openHackRF"
         android:layout_alignBaseline="@+id/et_sampRate"
         android:text="@string/sampRate" />
+    
+    <EditText
+        android:id="@+id/et_sampRate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/tv_sampRateLabel"
+        android:layout_below="@+id/bt_openHackRF"
+        android:layout_alignParentRight="true"
+        android:ems="10"
+        android:inputType="number"
+        android:text="2000000" />
 
     <TextView
         android:id="@+id/tv_freqLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/et_sampRate"
         android:layout_alignBaseline="@+id/et_freq"
-        android:layout_alignBottom="@+id/et_freq"
-        android:layout_alignParentLeft="true"
         android:text="@string/freq" />
-
-    <TextView
-        android:id="@+id/tv_output"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_below="@+id/et_freq"
-        android:scrollbars="vertical" />
-
-    <Button
-        android:id="@+id/bt_stop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/bt_tx"
-        android:layout_alignBottom="@+id/bt_tx"
-        android:layout_toRightOf="@+id/bt_tx"
-        android:text="@string/stop" 
-        android:onClick="stop" />
-
+    
     <EditText
         android:id="@+id/et_freq"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@+id/tv_freqLabel"
         android:layout_below="@+id/et_sampRate"
+        android:layout_alignParentRight="true"
         android:ems="10"
         android:inputType="number"
         android:text="97000000" />
 
-    <EditText
-        android:id="@+id/et_sampRate"
+    <TextView
+        android:id="@+id/tv_filename"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/bt_info"
-        android:layout_toRightOf="@+id/tv_sampRateLabel"
-        android:ems="10"
-        android:inputType="number"
-        android:text="2000000" >
+        android:layout_alignBaseline="@+id/et_filename"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/et_freq"
+        android:text="@string/filename" />
+    
+    <EditText
+        android:id="@+id/et_filename"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/tv_filename"
+        android:layout_below="@+id/et_freq"
+        android:layout_alignParentRight="true"
+        android:text="hackrf_android.io" />
+    
+    <SeekBar
+        android:id="@+id/sb_vgaGain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/et_filename"
+        android:layout_toRightOf="@+id/tv_vgaGain"
+        android:max="47"
+        android:progress="20" />
 
-        <requestFocus />
-    </EditText>
+    <TextView
+        android:id="@+id/tv_vgaGain"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/sb_vgaGain"
+        android:layout_alignParentLeft="true"
+        android:text="@string/vgaGain" />
+
+    <CheckBox
+        android:id="@+id/cb_amp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/sb_vgaGain"
+        android:text="@string/amp" />
+    
+    <CheckBox
+        android:id="@+id/cb_antenna"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/sb_vgaGain"
+        android:text="@string/antenna" />
+    
+    <TextView
+        android:id="@+id/tv_output"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cb_amp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:scrollbars="vertical" />
 
 </RelativeLayout>
