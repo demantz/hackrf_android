@@ -218,7 +218,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	public void readGuiElements()
 	{
 		sampRate = Integer.valueOf(et_sampRate.getText().toString());
-		frequency = (long) Integer.valueOf(et_freq.getText().toString());
+		frequency = Long.valueOf(et_freq.getText().toString());
 		filename = et_filename.getText().toString();
 		vgaGain = sb_vgaGain.getProgress();
 		lnaGain = sb_vgaGain.getProgress();
