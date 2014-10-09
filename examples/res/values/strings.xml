@@ -4,6 +4,7 @@
     <string name="app_name">HackRF_Test</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="action_help">Help</string>
     <string name="open">Open</string>
     <string name="info">Info</string>
     <string name="rx">RX</string>
@@ -16,5 +17,23 @@
     <string name="filename">Filename</string>
     <string name="vgaGain">VGA Gain</string>
     <string name="lnaGain">LNA Gain</string>
+    <string name="helpText">
+        <![CDATA[
+	        <h1>== HELP ==</h1>
+	        This is the example application delivered with the <i>hackrf_android</i> library. Its intention 
+	        is to demonstrate the functionality of the library and to provide running example code.<br /><br />
+			To use this App you need a HackRF connected to your device via an OTG USB cable. Press <b>Open</b>, 
+			give the App the permissions to open the USB device and hit <b>Info</b> to read out the Board ID, 
+			Version, Part ID and Serial Number from your device. <b>RX</b> will start receiving samples at the 
+			given sample rate and store them to a file on your SD card. If you leave the filename blank, all 
+			samples will go to <i>/dev/null</i>. With <b>TX</b> you can transmit a previously recorded file.<br /><br />
+			For more information on how to use hackrf_android in your own application see <br />
+			http://tech.mantz-it.com/2014/10/hackrfandroid-using-hackrf-with-android.html <br /><br />
+			Get the latest version (binaries and sources) from the Github repository: <br />
+			https://github.com/demantz/hackrf_android <br /><br />
+			© Dennis Mantz <br />
+			License: GPL v2 <br /><br />
+		]]>
+	</string>
 
 </resources>

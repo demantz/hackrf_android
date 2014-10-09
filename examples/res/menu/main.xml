@@ -2,6 +2,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.mantz_it.hackrf_test.MainActivity" >
 
+    <item android:id="@+id/action_help"
+          android:title="@string/action_help"
+          android:showAsAction="ifRoom" />
+    
     <item
         android:id="@+id/action_settings"
         android:orderInCategory="100"

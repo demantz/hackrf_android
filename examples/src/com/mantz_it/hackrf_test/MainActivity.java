@@ -15,6 +15,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -142,6 +143,10 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		int id = item.getItemId();
+		if (id == R.id.action_help) {
+			this.tv_output.setText(Html.fromHtml(getResources().getString(R.string.helpText)));
+			return true;
+		}
 		if (id == R.id.action_settings) {
 			return true;
 		}
