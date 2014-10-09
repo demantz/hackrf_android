@@ -4,14 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Formatter;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import android.app.Activity;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -128,6 +127,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		tv_output 		= (TextView) findViewById(R.id.tv_output);
 		tv_output.setMovementMethod(new ScrollingMovementMethod());	// make it scroll!
 		this.toggleButtonsEnabledIfHackrfReady(false);	// Disable all buttons except for 'Open HackRF'
+		
+		// Print Hello
+		String version = "";
+		try {
+			version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+		} catch (NameNotFoundException e) {}
+		this.tv_output.setText("Test_HackRF (version " + version + ") by Dennis Mantz");
 	}
 
 	@Override
@@ -221,7 +227,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		frequency = Long.valueOf(et_freq.getText().toString());
 		filename = et_filename.getText().toString();
 		vgaGain = sb_vgaGain.getProgress();
-		lnaGain = sb_vgaGain.getProgress();
+		lnaGain = sb_lnaGain.getProgress();
 		amp = cb_amp.isChecked();
 		antennaPower = cb_antenna.isChecked();
 	}
