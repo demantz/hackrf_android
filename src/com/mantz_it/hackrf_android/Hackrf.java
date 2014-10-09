@@ -113,6 +113,11 @@ public class Hackrf implements Runnable{
 	private static final int HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE = 23;
 	private static final int HACKRF_VENDOR_REQUEST_SET_FREQ_EXPLICIT = 24;
 	
+	// RF Filter Paths (from hackrf.c)
+	public static final int RF_PATH_FILTER_BYPASS 		= 0;
+	public static final int RF_PATH_FILTER_LOW_PASS 	= 1;
+	public static final int RF_PATH_FILTER_HIGH_PASS 	= 2;
+	
 	// Some Constants:
 	private static final String logTag 					= "hackrf_android";
 	private static final String HACKRF_USB_PERMISSION 	= "com.mantz_it.hackrf_android.USB_PERMISSION";
@@ -303,6 +308,20 @@ public class Hackrf implements Runnable{
 	}
 	
 	/**
+	 * Converts a byte array into a long integer using little endian byteorder.
+	 * 
+	 * @param b			byte array (length 8)
+	 * @param offset	offset pointing to the first byte in the bytearray that should be used
+	 * @return 			long integer
+	 */
+	private long byteArrayToLong(byte[] b, int offset)
+	{
+		return b[offset+0] & 0xFF | (b[offset+1] & 0xFF) << 8 | (b[offset+2] & 0xFF) << 16 | 
+				(b[offset+3] & 0xFF) << 24 | (b[offset+4] & 0xFF) << 32 | (b[offset+5] & 0xFF) << 40 | 
+				(b[offset+6] & 0xFF) << 48 | (b[offset+7] & 0xFF) << 56;
+	}
+	
+	/**
 	 * Converts an integer into a byte array using little endian byteorder.
 	 * 
 	 * @param i		integer
@@ -315,6 +334,26 @@ public class Hackrf implements Runnable{
 		b[1] = (byte) ((i >> 8) & 0xff);
 		b[2] = (byte) ((i >> 16) & 0xff);
 		b[3] = (byte) ((i >> 24) & 0xff);
+		return b;
+	}
+	
+	/**
+	 * Converts a long integer into a byte array using little endian byteorder.
+	 * 
+	 * @param i		long integer
+	 * @return 		byte array (length 8)
+	 */
+	private byte[] longToByteArray(long i)
+	{
+		byte[] b = new byte[8];
+		b[0] = (byte) (i & 0xff);
+		b[1] = (byte) ((i >> 8) & 0xff);
+		b[2] = (byte) ((i >> 16) & 0xff);
+		b[3] = (byte) ((i >> 24) & 0xff);
+		b[4] = (byte) ((i >> 32) & 0xff);
+		b[5] = (byte) ((i >> 40) & 0xff);
+		b[6] = (byte) ((i >> 48) & 0xff);
+		b[7] = (byte) ((i >> 56) & 0xff);
 		return b;
 	}
 	
@@ -679,6 +718,61 @@ public class Hackrf implements Runnable{
 				0, 0, byteOut.toByteArray()) != 8)
 		{
 			Log.e(logTag, "setFrequency: USB Transfer failed!");
+			throw(new HackrfUsbException("USB Transfer failed!"));
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Sets the explicit IF and LO frequency of the HackRF.
+	 * 
+	 * Note: This function interacts with the USB Hardware and
+	 * should not be called from a GUI Thread!
+	 * 
+	 * @param	ifFrequency		Intermediate Frequency in Hz. Must be in [2150000000; 2750000000]
+	 * @param	loFrequency		Local Oscillator Frequency in Hz. Must be in [84375000; 5400000000]
+	 * @param	path			RF_PATH_FILTER_BYPASS, *_HIGH_PASS or *_LOW_PASS
+	 * @return 	true on success
+	 * @throws 	HackrfUsbException
+	 */
+	public boolean setFrequencyExplicit(long ifFrequency, long loFrequency, int rfPath) throws HackrfUsbException
+	{
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		
+		// check range of IF Frequency:
+		if (ifFrequency < 2150000000l || ifFrequency > 2750000000l) {
+			Log.e(logTag,"setFrequencyExplicit: IF Frequency must be in [2150000000; 2750000000]!");
+			return false;
+		}
+
+		if ((rfPath != RF_PATH_FILTER_BYPASS) && (loFrequency < 84375000l || loFrequency > 5400000000l)) {
+			Log.e(logTag,"setFrequencyExplicit: LO Frequency must be in [84375000; 5400000000]!");
+			return false;
+		}
+		
+		// Check if path is in the valid range:
+		if (rfPath < 0 || rfPath > 2)
+		{
+			Log.e(logTag,"setFrequencyExplicit: Invalid value for rf_path!");
+			return false;
+		}
+			
+		Log.d(logTag, "Tune HackRF to IF:" + ifFrequency + " Hz; LO:" + loFrequency + " Hz...");
+		
+		try {
+			byteOut.write(this.longToByteArray(ifFrequency));
+			byteOut.write(this.longToByteArray(loFrequency));
+			byteOut.write(rfPath);
+		} catch (IOException e) {
+			Log.e(logTag,"setFrequencyExplicit: Error while converting arguments to byte buffer.");
+			return false;
+		}
+		
+		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_SET_FREQ_EXPLICIT, 
+				0, 0, byteOut.toByteArray()) != 17)
+		{
+			Log.e(logTag, "setFrequencyExplicit: USB Transfer failed!");
 			throw(new HackrfUsbException("USB Transfer failed!"));
 		}
 		
