@@ -977,6 +977,10 @@ public class Hackrf implements Runnable{
 			    	break;	
 			    }
 			    
+			    // Create a fresh ByteBuffer for the request:
+				buffer = ByteBuffer.allocate(getPacketSize());
+				request.setClientData(buffer);
+			    
 			    // Queue the request again...
 			    if(request.queue(buffer, getPacketSize()) == false){
 	                Log.e(logTag,"receiveLoop: Couldn't queue USB Request.");
@@ -1020,9 +1024,6 @@ public class Hackrf implements Runnable{
 			// Create, initialize and queue all usb requests:
 			for(int i = 0; i < numUsbRequests; i++)
 			{
-				// Create a ByteBuffer for the request:
-				buffer = ByteBuffer.allocate(getPacketSize());
-				
 				// Get a packet from the queue:
 			    packet = (byte[]) queue.poll(1000, TimeUnit.MILLISECONDS);
 			    if(packet == null || packet.length != getPacketSize())
@@ -1032,14 +1033,12 @@ public class Hackrf implements Runnable{
 			    	break;
 			    }
 			    
-			    // Put the packet into the buffer:
-			    buffer.clear();
-			    buffer.put(packet);
+			    // Wrap the packet in a ByteBuffer object:
+			    buffer = ByteBuffer.wrap(packet);
 				
 			    // Initialize the USB Request:
 				usbRequests[i] = new UsbRequest();
 				usbRequests[i].initialize(usbConnection, usbEndpointOUT);
-				usbRequests[i].setClientData(buffer);
 			    
 			    // Queue the request
 			    if(	usbRequests[i].queue(buffer, getPacketSize()) == false)
@@ -1065,10 +1064,7 @@ public class Hackrf implements Runnable{
 			    // Make sure we got an UsbRequest for the OUT endpoint!
 		    	if(request.getEndpoint() != usbEndpointOUT)
 		    		continue;
-			    
-			    // Extract the buffer
-			    buffer = (ByteBuffer) request.getClientData();
-			    
+
 			    // Increment the packetCounter (for statistics)
 			    this.transceivePacketCounter++;
 			    
@@ -1080,9 +1076,8 @@ public class Hackrf implements Runnable{
 			    	break;
 			    }
 			    
-			    // Put the packet into the buffer:
-			    buffer.clear();
-			    buffer.put(packet);
+			    // Wrap the packet in a ByteBuffer object:
+			    buffer = ByteBuffer.wrap(packet);
 			    
 			    // Queue the request again...
 			    if(request.queue(buffer, getPacketSize()) == false){
