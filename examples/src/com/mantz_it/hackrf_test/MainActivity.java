@@ -489,6 +489,11 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 				{
 					// On my Nexus 7 this is to slow for high sample rates. Nexus 5 works, though.
 					bufferedOutputStream.write(receivedBytes);
+					
+					// IMPORTANT: After we used the receivedBytes buffer and don't need it any more,
+					// we should return it to the buffer pool of the hackrf! This will save a lot of
+					// allocation time and the garbage collector won't go off every second.
+					hackrf.returnBufferToBufferPool(receivedBytes);
 				}
 				else
 				{
@@ -590,7 +595,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			while(!this.stopRequested)
 			{
 				i++;	// only for statistics
-				byte[] packet = new byte[hackrf.getPacketSize()];
+				
+				// IMPORTANT: We don't allocate the buffer for a packet ourself. We use the getBufferFromBufferPool()
+				// method of the hackrf instance! This might give us an already allocated buffer from the buffer pool
+				// and save a lot of time and memory! You will get a java.lang.OutOfMemoryError if you don't do that
+				// trust me ;) If no buffer is available in the pool, this method will automatically allocate a buffer
+				// of the correct size!
+				byte[] packet = hackrf.getBufferFromBufferPool();
 				
 				// Read one packet from the file:
 				if(bufferedInputStream.read(packet, 0, packet.length) != packet.length)

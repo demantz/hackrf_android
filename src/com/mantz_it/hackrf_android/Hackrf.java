@@ -79,6 +79,8 @@ public class Hackrf implements Runnable{
 	private Thread usbThread = null;							// hold the transceiver Thread if running
 	private ArrayBlockingQueue<byte[]> queue = null;			// queue that buffers samples to pass them
 																// between hackrf_android and the application
+	private ArrayBlockingQueue<byte[]> bufferPool = null;		// queue that holds old buffers which can be
+																// reused while receiving or transmitting samples
 	
 	// startTime (in ms since 1970) and packetCounter for statistics:
 	private long transceiveStartTime = 0;
@@ -239,6 +241,10 @@ public class Hackrf implements Runnable{
 		// Each queue element is a byte array of size usbEndpointIN.getMaxPacketSize() (512 Bytes)
 		this.queue = new ArrayBlockingQueue<byte[]>(queueSize/getPacketSize());
 		
+		// Create another queue that will be used to collect old buffers for reusing them.
+		// This will speed up things a lot!
+		this.bufferPool = new ArrayBlockingQueue<byte[]>(queueSize/getPacketSize());
+		
 		if(this.usbConnection == null)
 		{
 			Log.e(logTag, "Couldn't open HackRF USB Device!");
@@ -257,6 +263,45 @@ public class Hackrf implements Runnable{
 	{
 		//return this.usbEndpointIN.getMaxPacketSize(); <= gives 512 which is way too small
 		return packetSize;
+	}
+	
+	/**
+	 * Get a buffer (byte array with size getPacketSize()) that can be used to hold samples
+	 * for transmitting. Use this function to allocate your buffers which you will pass into the
+	 * queue while transmitting. It will reuse old buffers and save a lot of expensive memory
+	 * allocation and garbage collection time. If no old buffers are existing, it will allocate
+	 * a new one.
+	 * 
+	 * @return allocated buffer of size getPacketSize()
+	 */
+	public byte[] getBufferFromBufferPool()
+	{
+		byte[] buffer = this.bufferPool.poll();
+		
+		// Check if we got a buffer:
+		if(buffer == null)
+			buffer = new byte[getPacketSize()];
+		
+		return buffer;
+	}
+	
+	/**
+	 * Returns a buffer that isn't used by the application any more to the buffer pool of this hackrf instance.
+	 * The buffer must be a byte array with size getPacketSize() (the one you got from the queue while receiving).
+	 * This will reuse old buffers while receiving and save a lot of expensive memory
+	 * allocation and garbage collection time.
+	 * 
+	 * @param buffer	a byte array of size getPacketSize() that is not used by the application any more.
+	 */
+	public void returnBufferToBufferPool(byte[] buffer)
+	{
+		if (buffer.length == getPacketSize())
+		{
+			// Throw it into the pool (don't care if it's working or not):
+			this.bufferPool.offer(buffer);
+		}
+		else
+			Log.w(logTag, "returnBuffer: Got a buffer with wrong size. Ignore it!");
 	}
 	
 	/**
@@ -930,8 +975,8 @@ public class Hackrf implements Runnable{
 			// Create, initialize and queue all usb requests:
 			for(int i = 0; i < numUsbRequests; i++)
 			{
-				// Create a ByteBuffer for the request:
-				buffer = ByteBuffer.allocate(getPacketSize());
+				// Get a ByteBuffer for the request from the buffer pool:
+				buffer = ByteBuffer.wrap(this.getBufferFromBufferPool());
 				
 			    // Initialize the USB Request:
 				usbRequests[i] = new UsbRequest();
@@ -977,8 +1022,8 @@ public class Hackrf implements Runnable{
 			    	break;	
 			    }
 			    
-			    // Create a fresh ByteBuffer for the request:
-				buffer = ByteBuffer.allocate(getPacketSize());
+			    // Get a fresh ByteBuffer for the request from the buffer pool:
+				buffer = ByteBuffer.wrap(this.getBufferFromBufferPool());
 				request.setClientData(buffer);
 			    
 			    // Queue the request again...
@@ -1039,6 +1084,7 @@ public class Hackrf implements Runnable{
 			    // Initialize the USB Request:
 				usbRequests[i] = new UsbRequest();
 				usbRequests[i].initialize(usbConnection, usbEndpointOUT);
+				usbRequests[i].setClientData(buffer);
 			    
 			    // Queue the request
 			    if(	usbRequests[i].queue(buffer, getPacketSize()) == false)
@@ -1068,6 +1114,10 @@ public class Hackrf implements Runnable{
 			    // Increment the packetCounter (for statistics)
 			    this.transceivePacketCounter++;
 			    
+			    // Extract the buffer and return it to the buffer pool:
+			    buffer = (ByteBuffer) request.getClientData();
+			    this.returnBufferToBufferPool(buffer.array());
+			    
 			    // Get the next packet from the queue:
 			    packet = (byte[]) queue.poll(1000, TimeUnit.MILLISECONDS);
 			    if(packet == null || packet.length != getPacketSize())
@@ -1078,6 +1128,7 @@ public class Hackrf implements Runnable{
 			    
 			    // Wrap the packet in a ByteBuffer object:
 			    buffer = ByteBuffer.wrap(packet);
+			    request.setClientData(buffer);
 			    
 			    // Queue the request again...
 			    if(request.queue(buffer, getPacketSize()) == false){
