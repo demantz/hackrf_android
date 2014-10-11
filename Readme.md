@@ -31,6 +31,7 @@ Implemented Features
 * Setting Antenna Port Power of HackRF
 * Setting Transceiver Mode of HackRF
 * Receiving from the HackRF using a BlockingQueue
+* Transmitting to the HackRF using a BlockingQueue
 * Get Transmission statistics
 * Example App that shows how to use the library
 
