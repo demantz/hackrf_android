@@ -105,7 +105,7 @@
         android:layout_toRightOf="@+id/tv_filename"
         android:layout_below="@+id/et_freq"
         android:layout_alignParentRight="true"
-        android:text="hackrf_android.io" />
+        android:text="hackrf_android.iq" />
     
     <TextView
         android:id="@+id/tv_vgaGain"

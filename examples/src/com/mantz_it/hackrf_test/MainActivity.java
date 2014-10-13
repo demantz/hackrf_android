@@ -472,11 +472,11 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 				/*  HERE should be the DSP portion of the app. The receivedBytes
 				 *  variable now contains a byte array of size hackrf.getPacketSize().
 				 *  This is currently set to 16KB, but may change in the future.
-				 *  The bytes are interleaved, 8-bit, signed IQ samples (quadrature
-				 *  component first, followed by the in-phase component):
+				 *  The bytes are interleaved, 8-bit, signed IQ samples (in-phase
+				 *  component first, followed by the quadrature component):
 				 *  
 				 *  [--------- first sample ----------]   [-------- second sample --------]
-				 *         Q                  I                  Q                I ...
+				 *         I                  Q                  I                Q ...
 				 *  receivedBytes[0]   receivedBytes[1]   receivedBytes[2]       ...
 				 *  
 				 *  Note: Make sure you read from the queue fast enough, because if it runs
