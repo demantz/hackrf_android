@@ -45,6 +45,7 @@ Testet Devices
 | Nexus 7 2013 |      yes      | 15 Msps                             | @kx3companion |
 | Nexus 5      |      yes      | 15 Msps                             | Dennis Mantz  |
 | Moto G       |      yes      | ~ 2 Msps                            | @kx3companion |
+| Acer A500    |      yes      | ~ 5 Msps                            | @digiital     |
 
 Known Issues
 ------------
