@@ -161,6 +161,8 @@ public class Hackrf implements Runnable{
 		Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
 		while(deviceIterator.hasNext()){
 			UsbDevice device = deviceIterator.next();
+			
+			Log.d(logTag,"initHackrf: deviceList: vendor="+device.getVendorId() + " product="+device.getProductId());
 		    
 			// HackRF One (Vendor ID: 7504 [0x1d50]; Product ID: 24713 [0x6089] )
 			if ( device.getVendorId() == 7504 && device.getProductId() == 24713 )
