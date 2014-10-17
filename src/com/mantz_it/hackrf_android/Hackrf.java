@@ -142,8 +142,20 @@ public class Hackrf implements Runnable{
 		final UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 		UsbDevice hackrfUsbDvice = null;
 		
+		if(usbManager == null) {
+			Log.e(logTag, "initHackrf: Couldn't get an instance of UsbManager!");
+			return false;
+		}
+		
 		// Get a list of connected devices
 		HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+		
+		if(deviceList == null) {
+			Log.e(logTag, "initHackrf: Couldn't read the USB device list!");
+			return false;
+		}
+		
+		Log.i(logTag, "initHackrf: Found " + deviceList.size() + " USB devices.");
 		
 		// Iterate over the list. Use the first Device that matches a HackRF
 		Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
@@ -153,14 +165,14 @@ public class Hackrf implements Runnable{
 			// HackRF One (Vendor ID: 7504 [0x1d50]; Product ID: 24713 [0x6089] )
 			if ( device.getVendorId() == 7504 && device.getProductId() == 24713 )
 			{
-				Log.d(logTag,"Found HackRF One at " + device.getDeviceName());
+				Log.i(logTag,"initHackrf: Found HackRF One at " + device.getDeviceName());
 				hackrfUsbDvice = device;
 			}
 		    
 			// HackRF Jawbreaker (Vendor ID: 7504 [0x1d50]; Product ID: 24651 [0x604b])
 			if ( device.getVendorId() == 7504 && device.getProductId() == 24651 )
 			{
-				Log.d(logTag,"Found HackRF Jawbreaker at " + device.getDeviceName());
+				Log.i(logTag,"initHackrf: Found HackRF Jawbreaker at " + device.getDeviceName());
 				hackrfUsbDvice = device;
 			}
 		}
@@ -168,7 +180,7 @@ public class Hackrf implements Runnable{
 		// Check if we found a device:
 		if (hackrfUsbDvice == null)
 		{
-			Log.e(logTag,"No HackRF Device found.");
+			Log.e(logTag,"initHackrf: No HackRF Device found.");
 			return false;
 		}
 		
@@ -181,20 +193,20 @@ public class Hackrf implements Runnable{
 	                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) && device != null) {
 	                	// We have permissions to open the device! Lets init the hackrf instance and
 	                	// return it to the calling application.
-	                	Log.d(logTag,"Permission granted for device " + device.getDeviceName());
+	                	Log.d(logTag,"initHackrf: Permission granted for device " + device.getDeviceName());
 	                	try {
 							Hackrf hackrf = new Hackrf(usbManager, device, queueSize);
 							Toast.makeText(context, "HackRF at " + device.getDeviceName() + " is ready!",Toast.LENGTH_LONG).show();
 							callbackInterface.onHackrfReady(hackrf);
 						} catch (HackrfUsbException e) {
-							Log.e(logTag, "Couldn't open device " + device.getDeviceName());
+							Log.e(logTag, "initHackrf: Couldn't open device " + device.getDeviceName());
 							Toast.makeText(context, "Couldn't open HackRF device",Toast.LENGTH_LONG).show();
 		                    callbackInterface.onHackrfError("Couldn't open device " + device.getDeviceName());
 						}
 	                } 
 	                else 
 	                {
-	                    Log.e(logTag, "Permission denied for device " + device.getDeviceName());
+	                    Log.e(logTag, "initHackrf: Permission denied for device " + device.getDeviceName());
 	                    Toast.makeText(context, "Permission denied to open HackRF device",Toast.LENGTH_LONG).show();
 	                    callbackInterface.onHackrfError("Permission denied for device " + device.getDeviceName());
 	                }
@@ -631,7 +643,7 @@ public class Hackrf implements Runnable{
 	 * Note: This function interacts with the USB Hardware and
 	 * should not be called from a GUI Thread!
 	 * 
-	 * @param	gain	RX VGA Gain (0-62)
+	 * @param	gain	RX VGA Gain (0-62 in steps of 2)
 	 * @return 	true on success
 	 * @throws 	HackrfUsbException
 	 */
@@ -644,6 +656,10 @@ public class Hackrf implements Runnable{
 			Log.e(logTag,"setRxVGAGain: RX VGA Gain must be within 0-62!");
 			return false;
 		}
+		
+		// Must be in steps of two!
+		if(gain % 2 != 0)
+			gain = gain - (gain%2);
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_VGA_GAIN, 
 				0, gain, retVal) != 1)
@@ -703,7 +719,7 @@ public class Hackrf implements Runnable{
 	 * Note: This function interacts with the USB Hardware and
 	 * should not be called from a GUI Thread!
 	 * 
-	 * @param	gain	RX LNA Gain (0-62)
+	 * @param	gain	RX LNA Gain (0-40 in steps of 8)
 	 * @return 	true on success
 	 * @throws 	HackrfUsbException
 	 */
@@ -716,6 +732,10 @@ public class Hackrf implements Runnable{
 			Log.e(logTag,"setRxLNAGain: RX LNA Gain must be within 0-40!");
 			return false;
 		}
+		
+		// Must be in steps of 8!
+		if(gain % 8 != 0)
+			gain = gain - (gain%8);
 		
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_IN, HACKRF_VENDOR_REQUEST_SET_LNA_GAIN, 
 				0, gain, retVal) != 1)

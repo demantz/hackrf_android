@@ -39,19 +39,20 @@ Implemented Features
 Testet Devices
 --------------
 
-|    Device    | Does it work? | Tested sample rate with example app |     Tester    |
-|:------------:|:-------------:|:-----------------------------------:|:-------------:|
-| Nexus 7 2012 |      yes      | ~ 2 Msps, Filewriter is too slow.   | Dennis Mantz  |
-| Nexus 7 2013 |      yes      | 15 Msps                             | @kx3companion |
-| Nexus 5      |      yes      | 15 Msps                             | Dennis Mantz  |
-| Moto G       |      yes      | ~ 2 Msps                            | @kx3companion |
-| Acer A500    |      yes      | ~ 5 Msps                            | @digiital     |
+|    Device    | Does it work? | Comments                                  |     Tester    |
+|:------------:|:-------------:|:-----------------------------------------:|:-------------:|
+| Nexus 7 2012 |      yes      | ~ 2 Msps, Filewriter is too slow.         | Dennis Mantz  |
+| Nexus 7 2013 |      yes      | 15 Msps                                   | @kx3companion |
+| Nexus 5      |      yes      | 15 Msps                                   | Dennis Mantz  |
+| Moto G       |      yes      | ~ 2 Msps                                  | @kx3companion |
+| Acer A500    |      yes      | ~ 5 Msps                                  | @digiital     |
+| Samsung S4   |      no       | crashes when opening. maybe to less power | @digiital     |
 
 Known Issues
 ------------
 * USB connection is too slow for Sample Rates >15 Msps (testet on Nexus 7)
 * FileWriter in example app is too slow. Only works for ~ 2 Msps on old devices.
-* Not much testing so far...
+* Doesn't work on some devices. This might be because the power output is too low.
 
 
 Installation / Usage
@@ -72,6 +73,8 @@ A short howto to get started can be found on this blog post:
 [http://tech.mantz-it.com/2014/10/hackrfandroid-using-hackrf-with-android.html]
 (http://tech.mantz-it.com/2014/10/hackrfandroid-using-hackrf-with-android.html)
 
+Use the example application to test the library on your device and trouble shoot
+any problems. It has the option to show the logcat output!
 
 License
 -------

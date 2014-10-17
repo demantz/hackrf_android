@@ -10,12 +10,15 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -102,11 +105,25 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	// Folder name for capture files:
 	private static final String foldername = "Test_HackRF";
 	
+	// logcat process:
+	Process logcat;
+	File logfile;
+	
 	// This method is called on application startup by the Android System:
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		// Start logging:
+		try{
+			logfile = new File(Environment.getExternalStorageDirectory() + "/" + foldername, "log.txt");
+			logfile.getParentFile().mkdir();	// Create folder
+		    logcat = Runtime.getRuntime().exec("logcat -f " + logfile.getAbsolutePath());
+		    Log.i("MainActivity", "onCreate: log path: " + logfile.getAbsolutePath());
+		} catch (Exception e) {
+			Log.e("MainActivity", "onCreate: Failed to start logging!");
+		}
 		
 		// Create a Handler instance to use in other threads:
 		handler = new Handler();
@@ -137,6 +154,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	}
 
 	@Override
+	protected void onDestroy() {
+		if(logcat != null)
+			logcat.destroy();
+		super.onDestroy();
+	}
+
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
@@ -152,6 +176,14 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		if (id == R.id.action_help) {
 			this.tv_output.setText(Html.fromHtml(getResources().getString(R.string.helpText)));
 			return true;
+		}
+		if (id == R.id.action_showLog) {
+			Uri uri = Uri.fromFile(logfile);
+			Intent intent = new Intent(Intent.ACTION_VIEW);
+			intent.setDataAndType(uri, "text/plain");
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); 
+	        this.startActivity(intent);
+	        return true;
 		}
 		if (id == R.id.action_settings) {
 			return true;
