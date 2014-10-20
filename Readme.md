@@ -39,17 +39,19 @@ Implemented Features
 Testet Devices
 --------------
 
-|    Device      | Does it work? | Comments                                  |     Tester    |
-|:--------------:|:-------------:|:-----------------------------------------:|:-------------:|
-| Nexus 7 2012   |      yes      | ~ 2 Msps, Filewriter is too slow.         | Dennis Mantz  |
-| Nexus 7 2013   |      yes      | 15 Msps                                   | @kx3companion |
-| Nexus 5        |      yes      | 15 Msps                                   | Dennis Mantz  |
-| Moto G         |      yes      | ~ 2 Msps                                  | @kx3companion |
-| Acer A500      |      yes      | ~ 5 Msps                                  | @digiital     |
-| Samsung S3 LTE |      yes      | 10 Msps, running CM 10.1.3                | dc1rdb        |
-| Samsung S4     |      yes      |                                           | @digiital     |
-| Samsung S4 LTE |      yes      | 10 Msps                                   | Jonyweb       |
-| Samsung Note 3 |      yes      |                                           | @M3atShi3ld   |
+|    Device       | Does it work? | Comments                                  |     Tester    |
+|:---------------:|:-------------:|:-----------------------------------------:|:-------------:|
+| Nexus 7 2012    |      yes      | ~ 2 Msps, Filewriter is too slow.         | demantz       |
+| Nexus 7 2013    |      yes      | 15 Msps                                   | @kx3companion |
+| Nexus 5         |      yes      | 15 Msps                                   | demantz       |
+| Moto G          |      yes      | ~ 2 Msps                                  | @kx3companion |
+| Acer A500       |      yes      | ~ 5 Msps                                  | @digiital     |
+| Samsung S3 LTE  |      yes      | 10 Msps, running CM 10.1.3                | dc1rdb        |
+| Samsung S4      |      yes      |                                           | @digiital     |
+| Samsung S4 LTE  |      yes      | 10 Msps                                   | Jonyweb       |
+| Samsung Note 3  |      yes      |                                           | @M3atShi3ld   |
+| HTC M8          |      yes      |                                           | dmaynor       |
+| Sony Xperia Pro |      no       | insufficient USB bus power                | anttivs       |
 
 
 Known Issues
