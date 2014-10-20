@@ -246,10 +246,43 @@ public class Hackrf implements Runnable{
 		// Initialize the class attributes:
 		this.usbManager = usbManager;
 		this.usbDevice = usbDevice;
-		this.usbInterface = usbDevice.getInterface(0);
-		this.usbEndpointIN = usbInterface.getEndpoint(0);
-		this.usbEndpointOUT = usbInterface.getEndpoint(1);
-		this.usbConnection = usbManager.openDevice(usbDevice);
+		
+		// For detailed trouble shooting: Read out information of the device:
+		Log.i(logTag,"constructor: create Hackrf instance from " + usbDevice.getDeviceName()
+				+ ". Vendor ID: " + usbDevice.getVendorId() + " Product ID: " + usbDevice.getProductId());
+		Log.i(logTag,"constructor: device protocol: " + usbDevice.getDeviceProtocol());
+		Log.i(logTag,"constructor: device class: " + usbDevice.getDeviceClass()
+				+ " subclass: " + usbDevice.getDeviceSubclass());
+		Log.i(logTag,"constructor: interface count: " + usbDevice.getInterfaceCount());
+		
+		try {
+			// Extract interface from the device:
+			this.usbInterface = usbDevice.getInterface(0);
+			
+			// For detailed trouble shooting: Read out interface information of the device:
+			Log.i(logTag,"constructor: [interface 0] interface protocol: " + usbInterface.getInterfaceProtocol()
+					+ " subclass: " + usbInterface.getInterfaceSubclass());
+			Log.i(logTag,"constructor: [interface 0] interface class: " + usbInterface.getInterfaceClass());
+			Log.i(logTag,"constructor: [interface 0] endpoint count: " + usbInterface.getEndpointCount());
+			
+			// Extract the endpoints from the device:
+			this.usbEndpointIN = usbInterface.getEndpoint(0);
+			this.usbEndpointOUT = usbInterface.getEndpoint(1);
+			
+			// For detailed trouble shooting: Read out endpoint information of the interface:
+			Log.i(logTag,"constructor:     [endpoint 0 (IN)] address: " + usbEndpointIN.getAddress()
+					+ " attributes: " + usbEndpointIN.getAttributes() + " direction: " + usbEndpointIN.getDirection()
+					+ " max_packet_size: " + usbEndpointIN.getMaxPacketSize());
+			Log.i(logTag,"constructor:     [endpoint 1 (OUT)] address: " + usbEndpointOUT.getAddress()
+					+ " attributes: " + usbEndpointOUT.getAttributes() + " direction: " + usbEndpointOUT.getDirection()
+					+ " max_packet_size: " + usbEndpointOUT.getMaxPacketSize());
+			
+			// Open the device:
+			this.usbConnection = usbManager.openDevice(usbDevice);
+		} catch (Exception e) {
+			Log.e(logTag, "constructor: Couldn't open HackRF USB Device: " + e.getMessage());
+			throw(new HackrfUsbException("Couldn't open HackRF USB Device!"));
+		}
 		
 		// Create the queue that is used to transport samples to the application.
 		// Each queue element is a byte array of size usbEndpointIN.getMaxPacketSize() (512 Bytes)
@@ -258,12 +291,6 @@ public class Hackrf implements Runnable{
 		// Create another queue that will be used to collect old buffers for reusing them.
 		// This will speed up things a lot!
 		this.bufferPool = new ArrayBlockingQueue<byte[]>(queueSize/getPacketSize());
-		
-		if(this.usbConnection == null)
-		{
-			Log.e(logTag, "Couldn't open HackRF USB Device!");
-			throw(new HackrfUsbException("Couldn't open HackRF USB Device!"));
-		}
 	}
 	
 	/**
