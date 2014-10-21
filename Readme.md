@@ -53,6 +53,7 @@ Testet Devices
 | HTC M8          |      yes      |                                           | dmaynor         |
 | Sony Xperia Pro |      no       | insufficient USB bus power                | anttivs         |
 | LG G2           |      yes      |                                           | @michaelossmann |
+| Moto G 4G       |      yes      |                                           | @paul2dart      |
 
 
 Known Issues
