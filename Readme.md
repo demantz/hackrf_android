@@ -49,6 +49,7 @@ Testet Devices
 | Samsung S3 LTE  |      yes      | 10 Msps, running CM 10.1.3                | dc1rdb          |
 | Samsung S4      |      yes      |                                           | @digiital       |
 | Samsung S4 LTE  |      yes      | 10 Msps                                   | Jonyweb         |
+| Samsung S5      |      yes      |                                           | @simonroses     |
 | Samsung Note 3  |      yes      |                                           | @M3atShi3ld     |
 | HTC M8          |      yes      |                                           | dmaynor         |
 | Sony Xperia Pro |      no       | insufficient USB bus power                | anttivs         |
