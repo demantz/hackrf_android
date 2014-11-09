@@ -1088,8 +1088,10 @@ public class Hackrf implements Runnable{
 		// Receiving is done. Cancel and close all usb requests:
 	    for(UsbRequest request: usbRequests)
 	    {
-	    	request.cancel();
-	    	//request.close();    <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
+	    	if(request != null) {
+		    	request.cancel();
+		    	//request.close();    <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
+	    	}
 	    }
 		
 		// If the transceiverMode is still on RECEIVE, we stop Receiving:
@@ -1194,8 +1196,10 @@ public class Hackrf implements Runnable{
 		// Transmitting is done. Cancel and close all usb requests:
 	    for(UsbRequest request: usbRequests)
 	    {
-	    	request.cancel();
-	    	//request.close();   <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
+	    	if(request != null) {
+		    	request.cancel();
+		    	//request.close();   <-- This will cause the VM to crash with a SIGABRT when the next transceive starts?!?
+	    	}
 	    }
 		
 		// If the transceiverMode is still on TRANSMIT, we stop Transmitting:
