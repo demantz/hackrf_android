@@ -39,23 +39,29 @@ Implemented Features
 Testet Devices
 --------------
 
-|    Device       | Does it work? | Comments                                  |     Tester      |
-|:---------------:|:-------------:|:-----------------------------------------:|:---------------:|
-| Nexus 7 2012    |      yes      | ~ 2 Msps, Filewriter is too slow.         | demantz         |
-| Nexus 7 2013    |      yes      | 15 Msps                                   | @kx3companion   |
-| Nexus 5         |      yes      | 15 Msps                                   | demantz         |
-| Moto G          |      yes      | ~ 2 Msps                                  | @kx3companion   |
-| Acer A500       |      yes      | ~ 5 Msps                                  | @digiital       |
-| Samsung S3 LTE  |      yes      | 10 Msps, running CM 10.1.3                | dc1rdb          |
-| Samsung S4      |      yes      |                                           | @digiital       |
-| Samsung S4 LTE  |      yes      | 10 Msps                                   | Jonyweb         |
-| Samsung S5      |      yes      |                                           | @simonroses     |
-| Samsung Note 3  |      yes      |                                           | @M3atShi3ld     |
-| HTC M8          |      yes      |                                           | dmaynor         |
-| Sony Xperia Pro |      no       | insufficient USB bus power                | anttivs         |
-| LG G2           |      yes      |                                           | @michaelossmann |
-| LG G3           |      yes      |                                           | @HashHacks      |
-| Moto G 4G       |      yes      |                                           | @paul2dart      |
+|    Device          | Does it work? | Comments                                  |     Tester       |
+|:------------------:|:-------------:|:-----------------------------------------:|:----------------:|
+| Nexus 7 2012       |      yes      | ~ 2 Msps, Filewriter is too slow.         | demantz          |
+| Nexus 7 2013       |      yes      | 15 Msps                                   | @kx3companion    |
+| Nexus 5            |      yes      | 15 Msps                                   | demantz          |
+| Moto G             |      yes      | ~ 2 Msps                                  | @kx3companion    |
+| Acer A500          |      yes      | ~ 5 Msps                                  | @digiital        |
+| Samsung S3 LTE     |      yes      | 10 Msps, running CM 10.1.3                | dc1rdb           |
+| Samsung S4         |      yes      |                                           | @digiital        |
+| Samsung S4 LTE     |      yes      | 10 Msps                                   | Jonyweb          |
+| Samsung S4 Zoom    |      yes      |                                           | Ace Rimmer       |
+| Samsung S5         |      yes      |                                           | @simonroses      |
+| Samsung Note 3     |      yes      |                                           | @M3atShi3ld      |
+| Galaxy Tab S 8.4   |      yes      |                                           | Christophe Morel |
+| Galaxy Tab S 10.5  |      yes      |                                           | Harald Pedersen  |
+| HTC M8             |      yes      |                                           | dmaynor          |
+| Sony Xperia Pro    |      no       | insufficient USB bus power                | anttivs          |
+| Sony Xperia Z2     |      yes      |                                           | Harald Pedersen  |
+| LG G2              |      yes      |                                           | @michaelossmann  |
+| LG G3              |      yes      |                                           | @HashHacks       |
+| Moto G 4G          |      yes      |                                           | @paul2dart       |
+| Motorola Xoom M601 |      yes      |                                           | Reg Blank        |
+| Dragon Touch A1X   |      yes      |                                           | John Wright      |
 
 
 Known Issues
