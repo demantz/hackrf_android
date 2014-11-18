@@ -279,9 +279,14 @@ public class Hackrf implements Runnable{
 			
 			// Open the device:
 			this.usbConnection = usbManager.openDevice(usbDevice);
+			
+			if(this.usbConnection == null) {
+				Log.e(logTag, "constructor: Couldn't open HackRF USB Device: openDevice() returned null!");
+				throw(new HackrfUsbException("Couldn't open HackRF USB Device! (device is gone)"));
+			}
 		} catch (Exception e) {
 			Log.e(logTag, "constructor: Couldn't open HackRF USB Device: " + e.getMessage());
-			throw(new HackrfUsbException("Couldn't open HackRF USB Device!"));
+			throw(new HackrfUsbException("Error: Couldn't open HackRF USB Device!"));
 		}
 		
 		// Create the queue that is used to transport samples to the application.
@@ -378,6 +383,15 @@ public class Hackrf implements Runnable{
 		if(transTime == 0)
 			return 0;
 		return this.getTransceiverPacketCounter() * this.getPacketSize() / transTime;
+	}
+	
+	/**
+	 * Returns the current mode of receiving / transmitting
+	 * 
+	 * @return HACKRF_TRANSCEIVER_MODE_OFF, *_RECEIVE, *_TRANSMIT
+	 */
+	public int getTransceiverMode() {
+		return transceiverMode;
 	}
 	
 	/**
