@@ -43,6 +43,7 @@ Testet Devices
 |:------------------:|:-------------:|:-----------------------------------------:|:----------------:|
 | Nexus 7 2012       |      yes      | ~ 2 Msps, Filewriter is too slow.         | demantz          |
 | Nexus 7 2013       |      yes      | 15 Msps                                   | @kx3companion    |
+| Nexus 4            | needs ROM...  | ...and Y cable. (http://goo.gl/rRyQVM)    | -                |
 | Nexus 5            |      yes      | 15 Msps                                   | demantz          |
 | Moto G             |      yes      | ~ 2 Msps                                  | @kx3companion    |
 | Acer A500          |      yes      | ~ 5 Msps                                  | @digiital        |
