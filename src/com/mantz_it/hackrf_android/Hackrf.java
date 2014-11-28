@@ -921,6 +921,11 @@ public class Hackrf implements Runnable{
 	 */
 	public boolean setAntennaPower(boolean enable) throws HackrfUsbException
 	{
+		// The Jawbreaker doesn't support this command!
+		if(this.getBoardID() == 1) {		// == Jawbreaker
+			Log.w(logTag, "setAntennaPower: Antenna Power is not supported for HackRF Jawbreaker. Ignore.");
+			return false;
+		}
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE, 
 				(enable ? 1 : 0) , 0, null) != 0)
 		{
