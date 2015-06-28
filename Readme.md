@@ -36,11 +36,12 @@ Implemented Features
 * Example App that shows how to use the library
 
 
-Testet Devices
+Tested Devices
 --------------
 
 |    Device          | Does it work? | Comments                                  |     Tester       |
 |:------------------:|:-------------:|:-----------------------------------------:|:----------------:|
+| Oneplus One        |      yes      |                                           | KR0SIV           |
 | Nexus 7 2012       |      yes      | ~ 2 Msps, Filewriter is too slow.         | demantz          |
 | Nexus 7 2013       |      yes      | 15 Msps                                   | @kx3companion    |
 | Nexus 4            | needs ROM...  | ...and Y cable. (http://goo.gl/rRyQVM)    | -                |
