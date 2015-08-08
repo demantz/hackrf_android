@@ -539,6 +539,7 @@ public class Hackrf implements Runnable{
 			case 0: return "Jellybean";
 			case 1: return "Jawbreaker";
 			case 2: return "HackRF One";
+			case 3: return "rad1o";
 			default: return "INVALID BOARD ID";
 		}
 	}
@@ -924,6 +925,11 @@ public class Hackrf implements Runnable{
 		// The Jawbreaker doesn't support this command!
 		if(this.getBoardID() == 1) {		// == Jawbreaker
 			Log.w(logTag, "setAntennaPower: Antenna Power is not supported for HackRF Jawbreaker. Ignore.");
+			return false;
+		}
+		// The rad1o doesn't support this command!
+		if(this.getBoardID() == 3) {		// == rad1o
+			Log.w(logTag, "setAntennaPower: Antenna Power is not supported for rad1o. Ignore.");
 			return false;
 		}
 		if(this.sendUsbRequest(UsbConstants.USB_DIR_OUT, HACKRF_VENDOR_REQUEST_ANTENNA_ENABLE, 
