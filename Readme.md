@@ -64,6 +64,7 @@ Tested Devices
 | Moto G 4G          |      yes      |                                           | @paul2dart       |
 | Motorola Xoom M601 |      yes      |                                           | Reg Blank        |
 | Dragon Touch A1X   |      yes      |                                           | John Wright      |
+| Moto X  (1st gen)  |      yes      |                                           | sabas1080        |
 
 
 Known Issues
