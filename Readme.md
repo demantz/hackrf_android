@@ -76,15 +76,15 @@ Known Issues
 
 Installation / Usage
 --------------------
-To build the library and the example app by using Eclipse + ADT plugin:
-* Create new Android project from existing sources: directory hackrf_android/
-* Create new Android project from existing sources: directory hackrf_android/examples/
+Build the library and the example app by using the Android Studio projects:
+* hackrf_android/
+* hackrf_android/examples/
 
-If you want to use the library in your own app, just copy the bin/hackrf_android.jar
-file into your project and include it as a library. See the example project to
-learn how to use the library.
+If you want to use the library in your own app, just copy the 
+hackrf_android/app/build/outputs/aar/app-debug.aar file into your project and 
+include it as a library. See the example project to learn how to use the library.
 
-The hackrf_android.jar and the HackRF_Test.apk files are also in this repository
+The hackrf_android.aar and the HackRF_Test.apk files are also in this repository
 so that they can be used without building them. But they won't be synched to the
 latest code base all the time.
 
