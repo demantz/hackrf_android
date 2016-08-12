@@ -170,6 +170,13 @@ public class Hackrf implements Runnable{
 				Log.i(logTag,"initHackrf: Found HackRF One at " + device.getDeviceName());
 				hackrfUsbDvice = device;
 			}
+
+			// rad1o (Vendor ID: 7504 [0x1d50]; Product ID: 52245 [0xCC15] )
+			if ( device.getVendorId() == 7504 && device.getProductId() == 52245 )
+			{
+				Log.i(logTag,"initHackrf: Found rad1o at " + device.getDeviceName());
+				hackrfUsbDvice = device;
+			}
 		    
 			// HackRF Jawbreaker (Vendor ID: 7504 [0x1d50]; Product ID: 24651 [0x604b])
 			if ( device.getVendorId() == 7504 && device.getProductId() == 24651 )
