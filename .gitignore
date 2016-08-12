@@ -1,9 +1,23 @@
+# Java class files
+*.class
+
+# generated files
 bin/
 gen/
-.settings/
-.classpath
-.project
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Android Studio
+.idea
+.gradle
+build/
+
+# Vim and ctags
+tags
+*.swp
+
 examples/.classpath
 examples/.project
+examples/.settings
 examples/proguard-project.txt
-proguard-project.txt
