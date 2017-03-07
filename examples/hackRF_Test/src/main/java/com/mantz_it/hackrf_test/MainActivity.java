@@ -1,21 +1,16 @@
 package com.mantz_it.hackrf_test;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
+import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -31,6 +26,15 @@ import android.widget.TextView;
 import com.mantz_it.hackrf_android.Hackrf;
 import com.mantz_it.hackrf_android.HackrfCallbackInterface;
 import com.mantz_it.hackrf_android.HackrfUsbException;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <h1>Hackrf_Test</h1>
@@ -60,8 +64,11 @@ import com.mantz_it.hackrf_android.HackrfUsbException;
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-public class MainActivity extends Activity implements Runnable, HackrfCallbackInterface{
-	
+public class MainActivity extends AppCompatActivity implements Runnable, HackrfCallbackInterface{
+
+	private static final int PERMISSION_REQUEST_WRITE_FILES = 100;
+	private static final int PERMISSION_REQUEST_READ_FILES = 101;
+
 	// References to the GUI elements:
 	private Button bt_openHackRF = null;
 	private Button bt_info = null;
@@ -150,7 +157,13 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 		try {
 			version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
 		} catch (NameNotFoundException e) {}
-		this.tv_output.setText("Test_HackRF (version " + version + ") by Dennis Mantz");
+		this.tv_output.setText("Test_HackRF (version " + version + ") by Dennis Mantz\n");
+
+		// Check for the WRITE_EXTERNAL_STORAGE permission (needed for logging):
+		if (ContextCompat.checkSelfPermission(this, "android.permission.WRITE_EXTERNAL_STORAGE")
+				!= PackageManager.PERMISSION_GRANTED) {
+			printOnScreen("Warning: Logfile cannot be written (no Storage Permission)!\n");
+		}
 	}
 
 	@Override
@@ -178,19 +191,40 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			return true;
 		}
 		if (id == R.id.action_showLog) {
-			Uri uri = Uri.fromFile(logfile);
+			Uri uri = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", logfile);
 			Intent intent = new Intent(Intent.ACTION_VIEW);
 			intent.setDataAndType(uri, "text/plain");
-			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); 
+			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 	        this.startActivity(intent);
 	        return true;
 		}
-		if (id == R.id.action_settings) {
-			return true;
-		}
 		return super.onOptionsItemSelected(item);
 	}
-	
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+		switch (requestCode) {
+			case PERMISSION_REQUEST_READ_FILES: {
+				// If request is cancelled, the result arrays are empty.
+				if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+					printOnScreen("Permission granted to read files. Start rx!\n");
+					tx(null);
+				}
+				break;
+			}
+			case PERMISSION_REQUEST_WRITE_FILES: {
+				// If request is cancelled, the result arrays are empty.
+				if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+					printOnScreen("Permission granted to write files. Start rx!\n");
+					rx(null);
+				}
+				break;
+			}
+		}
+	}
+
+
 	/**
 	 * Will append the message to the tv_output TextView. Can be called from
 	 * outside the GUI thread because it uses the handler reference to access
@@ -273,7 +307,7 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	public void openHackrf(View view)
 	{
 		int queueSize = 15000000 * 2;	// max. 15 Msps with 2 byte each ==> will buffer for 1 second
-		
+
 		// Initialize the HackRF (i.e. open the USB device, which requires the user to give permissions)
 		if (!Hackrf.initHackrf(view.getContext(), this, queueSize))
 		{
@@ -307,6 +341,15 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void rx(View view)
 	{
+		// Check for the WRITE_EXTERNAL_STORAGE permission:
+		if (ContextCompat.checkSelfPermission(this, "android.permission.WRITE_EXTERNAL_STORAGE")
+				!= PackageManager.PERMISSION_GRANTED) {
+			printOnScreen("Need to ask for permission to write files...\n");
+			ActivityCompat.requestPermissions(this, new String[]{"android.permission.WRITE_EXTERNAL_STORAGE"},
+					PERMISSION_REQUEST_WRITE_FILES);
+			return; // wait for the permission response (handled in onRequestPermissionResult())
+		}
+
 		if (hackrf != null)
 		{
 			this.readGuiElements();
@@ -327,6 +370,15 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 	 */
 	public void tx(View view)
 	{
+		// Check for the READ_EXTERNAL_STORAGE permission:
+		if (ContextCompat.checkSelfPermission(this, "android.permission.READ_EXTERNAL_STORAGE")
+				!= PackageManager.PERMISSION_GRANTED) {
+			printOnScreen("Need to ask for permission to read files...\n");
+			ActivityCompat.requestPermissions(this, new String[]{"android.permission.READ_EXTERNAL_STORAGE"},
+					PERMISSION_REQUEST_WRITE_FILES);
+			return; // wait for the permission response (handled in onRequestPermissionResult())
+		}
+
 		if (hackrf != null)
 		{
 			this.readGuiElements();
@@ -561,7 +613,8 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			toggleButtonsEnabledIfHackrfReady(false);
 		} catch (IOException e) {
 			// This exception is thrown if the file could not be opened or write fails.
-			printOnScreen("error (File IO)!\n");
+			printOnScreen("error (File IO: " + e.getMessage() + ")!\n");
+			printOnScreen("Note: After granting storage permission, sometimes it is necessary to restart the app!\n");
 			toggleButtonsEnabledIfTransceiving(false);
 		} catch (InterruptedException e) {
 			// This exception is thrown if queue.poll() is interrupted
@@ -682,7 +735,8 @@ public class MainActivity extends Activity implements Runnable, HackrfCallbackIn
 			printOnScreen("Error (USB)!\n");
 			toggleButtonsEnabledIfHackrfReady(false);
 		} catch (IOException e) {
-			printOnScreen("Error (File IO)!\n");
+			printOnScreen("error (File IO: " + e.getMessage() + ")!\n");
+			printOnScreen("Note: After granting storage permission, sometimes it is necessary to restart the app!\n");
 			toggleButtonsEnabledIfTransceiving(false);
 		} catch (InterruptedException e) {
 			printOnScreen("Error (Queue interrupted)!\n");
