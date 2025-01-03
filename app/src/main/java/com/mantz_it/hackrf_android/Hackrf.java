@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import androidx.core.content.ContextCompat;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbConstants;
@@ -213,23 +214,30 @@ public class Hackrf implements Runnable{
 		                    callbackInterface.onHackrfError("Couldn't open device " + device.getDeviceName());
 						}
 	                } 
-	                else 
+	                else if(device != null)
 	                {
 	                    Log.e(logTag, "initHackrf: Permission denied for device " + device.getDeviceName());
 	                    Toast.makeText(context, "Permission denied to open HackRF device",Toast.LENGTH_LONG).show();
 	                    callbackInterface.onHackrfError("Permission denied for device " + device.getDeviceName());
-	                }
+	                } else {
+						Log.e(logTag, "initHackrf: Error with USB Permission Intent: " + intent.toString());
+						Toast.makeText(context, "Error with USB Permission Intent",Toast.LENGTH_LONG).show();
+						callbackInterface.onHackrfError("Error with USB Permission Intent: " + intent.toString());
+					}
 		        }
 		        
 		        // unregister the Broadcast Receiver:
 		        context.unregisterReceiver(this);
 		    }
 		};
-		
-		// Now create a intent to request for the permissions and register the broadcast receiver for it:
-		PendingIntent mPermissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(HACKRF_USB_PERMISSION), 0);
+
+		Intent innerIntent = new Intent(HACKRF_USB_PERMISSION);
+		// setting the package name of the inner intent makes it explicit
+		// From Android 14 it is required that mutable PendingIntents have explicit inner intents!
+		innerIntent.setPackage(context.getPackageName());
+		PendingIntent mPermissionIntent = PendingIntent.getBroadcast(context, 0, innerIntent, PendingIntent.FLAG_MUTABLE);
 		IntentFilter filter = new IntentFilter(HACKRF_USB_PERMISSION);
-		context.registerReceiver(permissionBroadcastReceiver, filter);
+		ContextCompat.registerReceiver(context, permissionBroadcastReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
 		
 		// Fire the request:
 		usbManager.requestPermission(hackrfUsbDvice, mPermissionIntent);
@@ -848,7 +856,7 @@ public class Hackrf implements Runnable{
 	 * 
 	 * @param	ifFrequency		Intermediate Frequency in Hz. Must be in [2150000000; 2750000000]
 	 * @param	loFrequency		Local Oscillator Frequency in Hz. Must be in [84375000; 5400000000]
-	 * @param	path			RF_PATH_FILTER_BYPASS, *_HIGH_PASS or *_LOW_PASS
+	 * @param	rfPath			RF_PATH_FILTER_BYPASS, *_HIGH_PASS or *_LOW_PASS
 	 * @return 	true on success
 	 * @throws 	HackrfUsbException
 	 */
