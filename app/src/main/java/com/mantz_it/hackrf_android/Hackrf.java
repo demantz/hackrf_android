@@ -125,7 +125,7 @@ public class Hackrf implements Runnable{
 	private static final String logTag 					= "hackrf_android";
 	private static final String HACKRF_USB_PERMISSION 	= "com.mantz_it.hackrf_android.USB_PERMISSION";
 	private static final int numUsbRequests 			= 4; 		// Number of parallel UsbRequests
-	private static final int packetSize 				= 1024*16;	// Buffer Size of each UsbRequest
+	private static final int packetSize 				= 1024*256;	// Buffer Size of each UsbRequest
 	
 	/**
 	 * Initializing the Hackrf Instance with a USB Device. This will try to request
@@ -135,7 +135,7 @@ public class Hackrf implements Runnable{
 	 * @param context				Application context. Used to retrieve System Services (USB)
 	 * @param callbackInterface		This interface declares two methods that are called if the
 	 * 								device is ready or if there was an error
-	 * @param queueSize				Size of the receive/transmit queue in bytes
+	 * @param queueSize				Size of the receive/transmit queue (will hold queueSize buffers with packetSize bytes each)
 	 * @return false if no Hackrf could be found
 	 */
 	public static boolean initHackrf(Context context, final HackrfCallbackInterface callbackInterface, final int queueSize)
@@ -253,7 +253,7 @@ public class Hackrf implements Runnable{
 	 * 
 	 * @param usbManager	Instance of the USB Manager (System Service)
 	 * @param usbDevice		Instance of an USB Device representing the HackRF
-	 * @param queueSize		Size of the receive/transmit queue in bytes
+	 * @param queueSize		Size of the receive/transmit queue (will hold queueSize buffers with packetSize bytes each)
 	 * @throws HackrfUsbException
 	 */
 	private Hackrf (UsbManager usbManager, UsbDevice usbDevice, int queueSize) throws HackrfUsbException
@@ -305,12 +305,11 @@ public class Hackrf implements Runnable{
 		}
 		
 		// Create the queue that is used to transport samples to the application.
-		// Each queue element is a byte array of size usbEndpointIN.getMaxPacketSize() (512 Bytes)
-		this.queue = new ArrayBlockingQueue<byte[]>(queueSize/getPacketSize());
+		this.queue = new ArrayBlockingQueue<byte[]>(queueSize);
 		
 		// Create another queue that will be used to collect old buffers for reusing them.
 		// This will speed up things a lot!
-		this.bufferPool = new ArrayBlockingQueue<byte[]>(queueSize/getPacketSize());
+		this.bufferPool = new ArrayBlockingQueue<byte[]>(queueSize);
 	}
 	
 	/**

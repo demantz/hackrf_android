@@ -20,4 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "hackrf_android"
-include ':app'
+include(":app")
