@@ -554,7 +554,8 @@ public class Hackrf implements Runnable{
 			case 1: return "Jawbreaker";
 			case 2: return "HackRF One";
 			case 3: return "rad1o";
-			default: return "INVALID BOARD ID";
+			case 4: return "HackRF One";  // (>=rev9)
+			default: return "INVALID BOARD ID '" + boardID + "'";
 		}
 	}
 	
